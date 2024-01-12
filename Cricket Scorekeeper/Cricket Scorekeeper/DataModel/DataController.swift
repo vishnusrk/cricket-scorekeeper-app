@@ -1806,7 +1806,11 @@ class DataController: ObservableObject {
                 match.result = "\(match.teamBattingFirst?.name ?? "N/A") won by \((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1)) runs!"
             }
         } else if ((match.teamBowlingFirst?.runs ?? -1) > (match.teamBattingFirst?.runs ?? -1)) {
-            match.result = "\(match.teamBowlingFirst?.name ?? "N/A") won by \(match.teamSize - 1 - (match.teamBowlingFirst?.wicketsLost ?? -1)) wickets!"
+            if (match.teamSize - 1 - (match.teamBowlingFirst?.wicketsLost ?? -1) == 1) {
+                match.result = "\(match.teamBowlingFirst?.name ?? "N/A") won by \(match.teamSize - 1 - (match.teamBowlingFirst?.wicketsLost ?? -1)) wicket!"
+            } else {
+                match.result = "\(match.teamBowlingFirst?.name ?? "N/A") won by \(match.teamSize - 1 - (match.teamBowlingFirst?.wicketsLost ?? -1)) wickets!"
+            }
         } else {
             match.result = "Match tied!"
         }
