@@ -1810,7 +1810,11 @@ class DataController: ObservableObject {
         mutableCopy.removeAllObjects()
         match.inningsTracker = mutableCopy
         if ((match.teamBattingFirst?.runs ?? -1) > (match.teamBowlingFirst?.runs ?? -1)) {
-            match.result = "\(match.teamBattingFirst?.name ?? "N/A") won by \((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1)) runs!"
+            if ((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1) == 1) {
+                match.result = "\(match.teamBattingFirst?.name ?? "N/A") won by \((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1)) run!"
+            } else {
+                match.result = "\(match.teamBattingFirst?.name ?? "N/A") won by \((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1)) runs!"
+            }
         } else if ((match.teamBowlingFirst?.runs ?? -1) > (match.teamBattingFirst?.runs ?? -1)) {
             match.result = "\(match.teamBowlingFirst?.name ?? "N/A") won by \(match.teamSize - 1 - (match.teamBowlingFirst?.wicketsLost ?? -1)) wickets!"
         } else {
