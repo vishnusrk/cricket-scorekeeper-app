@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="23C71" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="Delivery" representedClassName="Delivery" syncable="YES" codeGenerationType="class">
+        <attribute name="additionalInfo" optional="YES" attributeType="String"/>
+        <attribute name="index" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="outcome" optional="YES" attributeType="String"/>
+        <relationship name="specificMatch" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Match" inverseName="inningsTracker" inverseEntity="Match"/>
+    </entity>
+    <entity name="Match" representedClassName=".Match" syncable="YES" codeGenerationType="class">
+        <attribute name="bowlerHasNotStartedOver" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="completed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="deliveriesBowled" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="deliveriesBowledThatCount" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="firstInningsDeliveriesBowledThatCount" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="firstInningsFinished" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="numDifferentBowlers" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="overs" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="result" optional="YES" attributeType="String"/>
+        <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="started" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="teamSize" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalDeliveries" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="bowler" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
+        <relationship name="currentBattingTeam" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
+        <relationship name="currentBowlingTeam" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
+        <relationship name="inningsTracker" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Delivery" inverseName="specificMatch" inverseEntity="Delivery"/>
+        <relationship name="nonStriker" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
+        <relationship name="striker" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
+        <relationship name="teamBattingFirst" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
+        <relationship name="teamBowlingFirst" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
+        <relationship name="teams" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Team" inverseName="match" inverseEntity="Team"/>
+    </entity>
+    <entity name="Player" representedClassName=".Player" syncable="YES" codeGenerationType="class">
+        <attribute name="ballsBowled" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="ballsFaced" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="battingPosition" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="bowlingPosition" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="extrasBowled" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="fours" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="outDescription" optional="YES" attributeType="String"/>
+        <attribute name="runs" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="runsConceded" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="sixes" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="wickets" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="team" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team" inverseName="players" inverseEntity="Team"/>
+    </entity>
+    <entity name="Team" representedClassName=".Team" syncable="YES" codeGenerationType="class">
+        <attribute name="extras" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="runs" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="wicketsLost" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="match" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Match" inverseName="teams" inverseEntity="Match"/>
+        <relationship name="players" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Player" inverseName="team" inverseEntity="Player"/>
+    </entity>
+</model>
