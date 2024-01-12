@@ -39,7 +39,6 @@ struct NextBowlerView: View {
                     Text("Next Bowler")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         .padding(EdgeInsets(top: 25, leading: 25, bottom: 0, trailing: 0))
                     Spacer()
                 }
@@ -129,28 +128,3 @@ struct NextBowlerView: View {
  NextBowlerView()
  }
  */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

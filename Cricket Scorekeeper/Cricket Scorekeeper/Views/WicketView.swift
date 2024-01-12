@@ -42,7 +42,6 @@ struct WicketView: View {
                     Text("Wicket")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                    //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         .padding(EdgeInsets(top: 25, leading: 25, bottom: 0, trailing: 0))
                     Spacer()
                 }
@@ -395,8 +394,3 @@ struct WicketView: View {
  WicketView()
  }
  */
-
-
-//'outDescription', 'batterDismissedId', 'fielderResponsibleId', 'wideDelivery', 'crossedOver', 'batterHitBall', 'runsTaken', 'match'
-
-//NextBatterView(outDescription: modeOfDismissal?, fielderResponsibleId: fielderResponsibleId, wideDelivery: wideDelivery, crossedOver: crossedOver, batterHitBall: batterHitBall, runsTaken: runsTaken, match: match)

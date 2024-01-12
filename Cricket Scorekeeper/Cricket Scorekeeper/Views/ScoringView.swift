@@ -77,31 +77,25 @@ struct ScoringView: View {
                         Text("\(match.teamBattingFirst?.name ?? "Team 1")")
                             .font(.title3)
                             .fontWeight(.bold)
-                            //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         Spacer()
                         Text("\(match.teamBattingFirst?.runs ?? 0)/\(match.teamBattingFirst?.wicketsLost ?? 0)")
                             .font(.title3)
                             .fontWeight(.bold)
-                            //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         + Text(match.firstInningsFinished ? "  (\(Int(match.firstInningsDeliveriesBowledThatCount) / 6).\(Int(match.firstInningsDeliveriesBowledThatCount) % 6)/\(Int(match.totalDeliveries / 2) / 6).\(Int(match.totalDeliveries / 2) % 6) overs)" : "  (\(Int(match.deliveriesBowledThatCount) / 6).\(Int(match.deliveriesBowledThatCount) % 6)/\(Int(match.totalDeliveries / 2) / 6).\(Int(match.totalDeliveries / 2) % 6) overs)")
                             .font(.system(size: 10))
-                            //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                     }
                     .padding(EdgeInsets(top: 10, leading: 30, bottom: 5, trailing: 30))
                     HStack {
                         Text("\(match.teamBowlingFirst?.name ?? "Team 2")")
                             .font(.title3)
                             .fontWeight(.bold)
-                            //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         Spacer()
                         if (match.firstInningsFinished) {
                             Text("\(match.teamBowlingFirst?.runs ?? 0)/\(match.teamBowlingFirst?.wicketsLost ?? 0)")
                                 .font(.title3)
                                 .fontWeight(.bold)
-                                //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                             + Text("  (\(Int(match.deliveriesBowledThatCount) / 6).\(Int(match.deliveriesBowledThatCount) % 6) overs)")
                                 .font(.system(size: 10))
-                                //.foregroundColor(Color(red: 89/255, green: 206/255, blue: 89/255))
                         }
                     }
                     .padding(EdgeInsets(top: 5, leading: 30, bottom: 20, trailing: 30))

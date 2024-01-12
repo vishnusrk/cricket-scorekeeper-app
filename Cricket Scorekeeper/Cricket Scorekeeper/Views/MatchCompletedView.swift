@@ -69,7 +69,6 @@ struct MatchCompletedView: View {
                             .cornerRadius(10)
                     }
                     Button(action: {
-                        //return later
                         sheetManager.matchCompletedViewShowing = false
                         dismiss()
                     }) {

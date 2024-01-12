@@ -188,7 +188,6 @@ struct InningsSwitchView: View {
                         Text("Please fill all of the fields.")
                     }
                     Button(action: {
-                        //return later
                         sheetManager.inningsSwitchViewShowing = false
                         dismiss()
                     }) {
