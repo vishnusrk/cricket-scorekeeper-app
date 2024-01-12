@@ -1328,16 +1328,6 @@ class DataController: ObservableObject {
             let temp = match.striker
             match.striker = match.nonStriker
             match.nonStriker = temp
-            /*
-            let delivery = Delivery(context: context)
-            delivery.index = match.deliveriesBowled
-            delivery.outcome = "|"
-            let innings = match.inningsTracker
-            let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-            mutableCopy.add(delivery)
-            match.inningsTracker = mutableCopy
-            match.deliveriesBowled += 1
-             */
             for delivery in match.inningsTracker ?? [] {
                 context.delete(delivery as! NSManagedObject)
             }
