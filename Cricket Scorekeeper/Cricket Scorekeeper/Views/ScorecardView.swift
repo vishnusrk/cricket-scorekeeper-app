@@ -165,7 +165,6 @@ struct ScorecardView: View {
                 }
                 .font(.subheadline)
                 .padding(EdgeInsets(top: 0, leading: 15, bottom: 10, trailing: 15))
-                
                 HStack {
                     Text("Total")
                         .fontWeight(.semibold)
@@ -173,6 +172,16 @@ struct ScorecardView: View {
                     Text("\(match.teamBattingFirst?.runs ?? -1)/\(match.teamBattingFirst?.wicketsLost ?? -1)")
                         .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 10))
                         .fontWeight(.bold)
+                }
+                .font(.subheadline)
+                .padding(EdgeInsets(top: 0, leading: 15, bottom: 20, trailing: 15))
+                HStack {
+                    let players = Array(match.teamBattingFirst?.players as! Set<Player>)
+                                                  .filter { $0.battingPosition == 0 }
+                    let playerNames = players.map { $0.name ?? "N/A" }
+                    let joinedNames = playerNames.joined(separator: ", ")
+                    Text("To Bat:  " + joinedNames)
+                    Spacer()
                 }
                 .font(.subheadline)
                 .padding(EdgeInsets(top: 0, leading: 15, bottom: 20, trailing: 15))
