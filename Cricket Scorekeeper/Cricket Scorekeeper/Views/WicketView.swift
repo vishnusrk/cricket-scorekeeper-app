@@ -113,6 +113,18 @@ struct WicketView: View {
                             },
                             label: {Text("Hit Wicket")}
                         )
+                        Button(
+                            action: {
+                                modeOfDismissal = "Retired Out"
+                            },
+                            label: {Text("Retired Out")}
+                        )
+                        Button(
+                            action: {
+                                modeOfDismissal = "Retired Hurt"
+                            },
+                            label: {Text("Retired Hurt")}
+                        )
                     } label: {
                         Label (
                             title: {
@@ -250,7 +262,7 @@ struct WicketView: View {
                         Text("Next Batter")
                         Menu {
                             ForEach(battingTeamArray) { player in
-                                if (player.battingPosition == 0) {
+                                if (player.battingPosition == 0 || player.outDescription == "retired hurt") {
                                     Button(
                                         action: {
                                             nextBatter = player.name ?? "N/A"
@@ -278,7 +290,10 @@ struct WicketView: View {
                         if (modeOfDismissal.isEmpty || (nextBatter.isEmpty && (match.currentBattingTeam?.wicketsLost != match.teamSize - 2)) || batterDismissed.isEmpty) {
                             allFieldsNotFilled = true
                         }
-                        if (batterDismissed == match.nonStriker?.name && modeOfDismissal != "Run Out") {
+                        if (modeOfDismissal == "Retired Hurt" && (match.currentBattingTeam?.wicketsLost == match.teamSize - 2)) {
+                            allFieldsNotFilled = true
+                        }
+                        if (batterDismissed == match.nonStriker?.name && (modeOfDismissal != "Run Out" && modeOfDismissal != "Retired Out" && modeOfDismissal != "Retired Hurt")) {
                             allFieldsNotFilled = true
                         }
                         if (modeOfDismissal == "Caught" || modeOfDismissal == "Stumped" || modeOfDismissal == "Run Out") {
@@ -294,14 +309,24 @@ struct WicketView: View {
                         if (!allFieldsNotFilled) {
                             if (match.firstInningsFinished) {
                                 if (!wideDelivery) {
-                                    if ((Int64(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1) > match.teamBattingFirst?.runs ?? -1 || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2 || match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
-                                        sheetManager.matchCompletedViewShowing = true
-                                    } else if (match.deliveriesBowledThatCount % 6 == 5) {
-                                        sheetManager.nextBowlerViewShowing = true
+                                    if (modeOfDismissal == "Retired Out" || modeOfDismissal == "Retired Hurt") {
+                                        if (match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
+                                            sheetManager.matchCompletedViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
+                                            sheetManager.wicketsViewShowing = false
+                                            dismiss()
+                                        }
                                     } else {
-                                        DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
-                                        sheetManager.wicketsViewShowing = false
-                                        dismiss()
+                                        if ((Int64(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1) > match.teamBattingFirst?.runs ?? -1 || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2 || match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
+                                            sheetManager.matchCompletedViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
+                                            sheetManager.wicketsViewShowing = false
+                                            dismiss()
+                                        }
                                     }
                                 } else {
                                     if (1 + (Int64(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1) > match.teamBattingFirst?.runs ?? -1 || match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
@@ -314,14 +339,24 @@ struct WicketView: View {
                                 }
                             } else {
                                 if (!wideDelivery) {
-                                    if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2 || match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
-                                        sheetManager.inningsSwitchViewShowing = true
-                                    } else if (match.deliveriesBowledThatCount % 6 == 5) {
-                                        sheetManager.nextBowlerViewShowing = true
+                                    if (modeOfDismissal == "Retired Out" || modeOfDismissal == "Retired Hurt") {
+                                        if (match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
+                                            sheetManager.inningsSwitchViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
+                                            sheetManager.wicketsViewShowing = false
+                                            dismiss()
+                                        }
                                     } else {
-                                        DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
-                                        sheetManager.wicketsViewShowing = false
-                                        dismiss()
+                                        if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2 || match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
+                                            sheetManager.inningsSwitchViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, offTheBat: batterHitBall, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId, context: managedObjectContext)
+                                            sheetManager.wicketsViewShowing = false
+                                            dismiss()
+                                        }
                                     }
                                 } else {
                                     if (match.currentBattingTeam?.wicketsLost == match.teamSize - 2) {
@@ -349,8 +384,10 @@ struct WicketView: View {
                             allFieldsNotFilled = false
                         }
                     } message: {
-                        if (batterDismissed == match.nonStriker?.name && modeOfDismissal != "Run Out") {
-                            Text("The only way the non striker can get out on a delivery is run out.")
+                        if (modeOfDismissal == "Retired Hurt" && (match.currentBattingTeam?.wicketsLost == match.teamSize - 2)) {
+                            Text("Since there is only one wicket left, if the batter is retired hurt, please select retired out as there are no other batters left.")
+                        } else if (batterDismissed == match.nonStriker?.name && modeOfDismissal != "Run Out") {
+                            Text("The only ways the non striker can get out on a delivery are run out and retired out/hurt.")
                         } else {
                             Text("Please fill all of the fields.")
                         }

@@ -69,13 +69,13 @@ struct AboutView: View {
                     Spacer()
                 }
                 HStack {
-                    Text("- Cricket Scorekeeper currently does not support DLS/shortened innings or Impact Players.")
+                    Text("- If a batter is retired hurt, tap W, and select 'Retired Hurt' for the mode of dismissal. Please note that if 'Retired Hurt' is selected, the batter can come back in to bat when subsequent wickets fall. If all the other batters get out, assuming the retired hurt batter wasn't sent back in, they will need to replace the dismissed batter in the scoring menu (they will need to be the 'Next Batter'). If they cannot return and are ruled out from batting, simply tap W and select 'Retired Out' for them when they are back in the scoring menu. Alternatively, if you know that they will not bat for the rest of the match, you can select 'Retired Out' as their mode of dismissal and they will not be an available batter to come in when subsequent wickets fall.")
                         .font(.subheadline)
                         .padding(EdgeInsets(top: 0, leading: 25, bottom: 15, trailing: 25))
                     Spacer()
                 }
                 HStack {
-                    Text("- Timed out dismissals are currently not supported.")
+                    Text("- Cricket Scorekeeper currently does not support DLS/shortened innings or Impact Players.")
                         .font(.subheadline)
                         .padding(EdgeInsets(top: 0, leading: 25, bottom: 15, trailing: 25))
                     Spacer()

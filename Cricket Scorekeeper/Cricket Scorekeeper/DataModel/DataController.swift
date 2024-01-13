@@ -56,6 +56,7 @@ class DataController: ObservableObject {
         match.inningsTracker = NSSet()
         match.bowlerHasNotStartedOver = true
         match.numDifferentBowlers = 0
+        match.battersSentIn = 0
         match.result = ""
         let teamOne = Team(context: context)
         teamOne.name = teamOneName
@@ -138,6 +139,7 @@ class DataController: ObservableObject {
                 player.battingPosition = 2
             }
         }
+        match.battersSentIn = 2
         for player in bowlingTeamArray {
             if (bowler == player.id) {
                 match.bowler = player
@@ -1157,7 +1159,13 @@ class DataController: ObservableObject {
                         fielderName = player.name ?? ""
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 if (playerThatGotOut == match.striker?.id) {
                     match.striker?.outDescription = "run out (\(fielderName))"
                     match.striker = nextBatter
@@ -1192,7 +1200,13 @@ class DataController: ObservableObject {
                         nextBatter = player
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 match.striker?.outDescription = "hit wicket b \(match.bowler?.name ?? "N/A")"
                 match.striker = nextBatter
                 let delivery = Delivery(context: context)
@@ -1228,7 +1242,13 @@ class DataController: ObservableObject {
                         fielderName = player.name ?? ""
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 match.striker?.outDescription = "st \(fielderName) b \(match.bowler?.name ?? "N/A")"
                 match.striker = nextBatter
                 let delivery = Delivery(context: context)
@@ -1257,7 +1277,13 @@ class DataController: ObservableObject {
                         fielderName = player.name ?? ""
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 match.striker?.outDescription = "c \(fielderName) b \(match.bowler?.name ?? "N/A")"
                 match.striker = nextBatter
                 if (crossedOver) {
@@ -1285,7 +1311,13 @@ class DataController: ObservableObject {
                         nextBatter = player
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 match.striker?.outDescription = "b \(match.bowler?.name ?? "N/A")"
                 match.striker = nextBatter
                 let delivery = Delivery(context: context)
@@ -1308,8 +1340,63 @@ class DataController: ObservableObject {
                         nextBatter = player
                     }
                 }
-                nextBatter?.battingPosition = (match.currentBattingTeam?.wicketsLost ?? 0) + 2
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
                 match.striker?.outDescription = "lbw b \(match.bowler?.name ?? "N/A")"
+                match.striker = nextBatter
+                let delivery = Delivery(context: context)
+                delivery.index = match.deliveriesBowled
+                delivery.outcome = "W"
+                let innings = match.inningsTracker
+                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+                mutableCopy.add(delivery)
+                match.inningsTracker = mutableCopy
+                match.deliveriesBowled += 1
+            case "Retired Out":
+                match.currentBattingTeam?.wicketsLost += 1
+                var nextBatter: Player?
+                for player in battingTeam {
+                    if (newBatter == player.id) {
+                        nextBatter = player
+                    }
+                }
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
+                match.striker?.outDescription = "retired out/hurt"
+                match.striker = nextBatter
+                let delivery = Delivery(context: context)
+                delivery.index = match.deliveriesBowled
+                delivery.outcome = "W"
+                let innings = match.inningsTracker
+                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+                mutableCopy.add(delivery)
+                match.inningsTracker = mutableCopy
+                match.deliveriesBowled += 1
+            case "Retired Hurt":
+                var nextBatter: Player?
+                for player in battingTeam {
+                    if (newBatter == player.id) {
+                        nextBatter = player
+                    }
+                }
+                if (nextBatter?.outDescription == "not out") {
+                    nextBatter?.battingPosition = match.battersSentIn + 1
+                    match.battersSentIn += 1
+                }
+                if (nextBatter?.outDescription == "retired hurt") {
+                    nextBatter?.outDescription = "not out"
+                }
+                match.striker?.outDescription = "retired hurt"
                 match.striker = nextBatter
                 let delivery = Delivery(context: context)
                 delivery.index = match.deliveriesBowled
@@ -1344,7 +1431,7 @@ class DataController: ObservableObject {
                 }
             }
             if (nextBowler?.ballsBowled == 0) {
-                nextBowler?.bowlingPosition = match.numDifferentBowlers + 1
+                nextBowler?.bowlingPosition = match.numDifferentBowlers + 2
                 match.numDifferentBowlers += 1
             }
             match.bowlerHasNotStartedOver = true
@@ -1768,6 +1855,7 @@ class DataController: ObservableObject {
                 player.battingPosition = 2
             }
         }
+        match.battersSentIn = 2
         for player in bowlingTeamArray {
             if (bowler == player.id) {
                 match.bowler = player

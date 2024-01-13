@@ -7,6 +7,7 @@
         <relationship name="specificMatch" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Match" inverseName="inningsTracker" inverseEntity="Match"/>
     </entity>
     <entity name="Match" representedClassName=".Match" syncable="YES" codeGenerationType="class">
+        <attribute name="battersSentIn" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="bowlerHasNotStartedOver" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="completed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="deliveriesBowled" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
