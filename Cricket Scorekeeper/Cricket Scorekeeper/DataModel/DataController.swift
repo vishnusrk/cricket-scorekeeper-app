@@ -1468,11 +1468,28 @@ class DataController: ObservableObject {
                     match.bowler?.runsConceded -= 1
                     match.bowler?.ballsBowled -= 1
                     match.deliveriesBowledThatCount -= 1
+                case "1+4":
+                    let temp = match.striker
+                    match.striker = match.nonStriker
+                    match.nonStriker = temp
+                    match.currentBattingTeam?.runs -= 5
+                    match.striker?.runs -= 5
+                    match.striker?.ballsFaced -= 1
+                    match.bowler?.runsConceded -= 5
+                    match.bowler?.ballsBowled -= 1
+                    match.deliveriesBowledThatCount -= 1
                 case "2":
                     match.currentBattingTeam?.runs -= 2
                     match.striker?.runs -= 2
                     match.striker?.ballsFaced -= 1
                     match.bowler?.runsConceded -= 2
+                    match.bowler?.ballsBowled -= 1
+                    match.deliveriesBowledThatCount -= 1
+                case "2+4":
+                    match.currentBattingTeam?.runs -= 6
+                    match.striker?.runs -= 6
+                    match.striker?.ballsFaced -= 1
+                    match.bowler?.runsConceded -= 6
                     match.bowler?.ballsBowled -= 1
                     match.deliveriesBowledThatCount -= 1
                 case "3":
@@ -1485,12 +1502,30 @@ class DataController: ObservableObject {
                     match.bowler?.runsConceded -= 3
                     match.bowler?.ballsBowled -= 1
                     match.deliveriesBowledThatCount -= 1
+                case "3+4":
+                    let temp = match.striker
+                    match.striker = match.nonStriker
+                    match.nonStriker = temp
+                    match.currentBattingTeam?.runs -= 7
+                    match.striker?.runs -= 7
+                    match.striker?.ballsFaced -= 1
+                    match.bowler?.runsConceded -= 7
+                    match.bowler?.ballsBowled -= 1
+                    match.deliveriesBowledThatCount -= 1
                 case "4":
                     match.currentBattingTeam?.runs -= 4
                     match.striker?.runs -= 4
                     match.striker?.fours -= 1
                     match.striker?.ballsFaced -= 1
                     match.bowler?.runsConceded -= 4
+                    match.bowler?.ballsBowled -= 1
+                    match.deliveriesBowledThatCount -= 1
+                case "4+4":
+                    match.currentBattingTeam?.runs -= 8
+                    match.striker?.runs -= 8
+                    match.striker?.fours -= 1
+                    match.striker?.ballsFaced -= 1
+                    match.bowler?.runsConceded -= 8
                     match.bowler?.ballsBowled -= 1
                     match.deliveriesBowledThatCount -= 1
                 case "6":

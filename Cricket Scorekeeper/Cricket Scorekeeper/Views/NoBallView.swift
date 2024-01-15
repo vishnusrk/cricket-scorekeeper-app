@@ -86,7 +86,7 @@ struct NoBallView: View {
                 }
                 .padding()
                 HStack {
-                    Toggle("Overthrow to Boundary", isOn: $overthrow)
+                    Toggle("Add 4 Runs", isOn: $overthrow)
                                     .toggleStyle(SwitchToggleStyle(tint: colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255)))
                                     .fontWeight(.semibold)
                     Spacer()
