@@ -18,7 +18,6 @@ struct NoBallView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Binding var overthrow: Bool
     @State private var runsTaken: String = ""
     @State private var batterHitBall: Bool = false
     @State private var allFieldsNotFilled = false
@@ -86,9 +85,6 @@ struct NoBallView: View {
                 }
                 .padding()
                 HStack {
-                    Toggle("Add 4 Runs", isOn: $overthrow)
-                                    .toggleStyle(SwitchToggleStyle(tint: colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255)))
-                                    .fontWeight(.semibold)
                     Spacer()
                 }
                 .padding(EdgeInsets(top: 10, leading: 25, bottom: 20, trailing: 25))
@@ -101,17 +97,14 @@ struct NoBallView: View {
                 .padding(EdgeInsets(top: 10, leading: 25, bottom: 20, trailing: 25))
                 HStack {
                     Button(action: {
-                        let x = (5 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
-                        let overthrowCondition: Bool = overthrow && (x > match.teamBattingFirst?.runs ?? -1)
-                        let y = (1 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
+                        let x = (1 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
                         if (match.firstInningsFinished) {
                             if (runsTaken.isEmpty || (runsTaken == "6" && !batterHitBall)) {
                                 allFieldsNotFilled = true
-                            } else if (overthrowCondition || y > (match.teamBattingFirst?.runs ?? -1)) {
+                            } else if (x > (match.teamBattingFirst?.runs ?? -1)) {
                                 sheetManager.matchCompletedViewShowing = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.noBall, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: batterHitBall, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.noBall, secondaryOutcome: Int(runsTaken), offTheBat: batterHitBall, context: managedObjectContext)
                                 sheetManager.noBallViewShowing = false
                                 dismiss()
                             }
@@ -119,8 +112,7 @@ struct NoBallView: View {
                             if (runsTaken.isEmpty || (runsTaken == "6" && !batterHitBall)) {
                                 allFieldsNotFilled = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.noBall, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: batterHitBall, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.noBall, secondaryOutcome: Int(runsTaken), offTheBat: batterHitBall, context: managedObjectContext)
                                 sheetManager.noBallViewShowing = false
                                 dismiss()
                             }
@@ -147,7 +139,6 @@ struct NoBallView: View {
                         }
                     }
                     Button(action: {
-                        overthrow = false
                         sheetManager.noBallViewShowing = false
                         dismiss()
                     }) {
@@ -166,7 +157,7 @@ struct NoBallView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $sheetManager.matchCompletedViewShowing) {
-            MatchCompletedView(outcome: $outcome, overthrow: overthrow, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken))
+            MatchCompletedView(outcome: $outcome, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken))
                 .interactiveDismissDisabled(true)
         }
     }

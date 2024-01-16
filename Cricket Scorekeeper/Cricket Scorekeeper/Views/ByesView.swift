@@ -18,7 +18,6 @@ struct ByesView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Binding var overthrow: Bool
     @State private var runsTaken: String = ""
     @State private var allFieldsNotFilled = false
     @State var nextBowlerViewShowing = false
@@ -74,9 +73,6 @@ struct ByesView: View {
                 }
                 .padding()
                 HStack {
-                    Toggle("Add 4 Runs", isOn: $overthrow)
-                                    .toggleStyle(SwitchToggleStyle(tint: colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255)))
-                                    .fontWeight(.semibold)
                     Spacer()
                 }
                 .padding(EdgeInsets(top: 10, leading: 25, bottom: 20, trailing: 25))
@@ -85,13 +81,12 @@ struct ByesView: View {
                         if (match.firstInningsFinished) {
                             if (runsTaken.isEmpty) {
                                 allFieldsNotFilled = true
-                            } else if ((overthrow && (4 + (Int64(runsTaken) ?? 0) + (match.teamBowlingFirst?.runs ?? -1) > (match.teamBattingFirst?.runs ?? -1))) || (Int64(runsTaken) ?? 0) + (match.teamBowlingFirst?.runs ?? -1) > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                            } else if ((Int64(runsTaken) ?? 0) + (match.teamBowlingFirst?.runs ?? -1) > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
                                 sheetManager.matchCompletedViewShowing = true
                             } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                 sheetManager.nextBowlerViewShowing = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.bye, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: false, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.bye, secondaryOutcome: Int(runsTaken), offTheBat: false, context: managedObjectContext)
                                 sheetManager.byesViewShowing = false
                                 dismiss()
                             }
@@ -103,8 +98,7 @@ struct ByesView: View {
                             } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                 sheetManager.nextBowlerViewShowing = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.bye, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: false, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.bye, secondaryOutcome: Int(runsTaken), offTheBat: false, context: managedObjectContext)
                                 sheetManager.byesViewShowing = false
                                 dismiss()
                             }
@@ -127,7 +121,6 @@ struct ByesView: View {
                         Text("Please specify the number of runs taken.")
                     }
                     Button(action: {
-                        overthrow = false
                         sheetManager.byesViewShowing = false
                         dismiss()
                     }) {
@@ -146,15 +139,15 @@ struct ByesView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $sheetManager.nextBowlerViewShowing) {
-            NextBowlerView(outcome: $outcome, overthrow: overthrow, offTheBat: false, match: match, secondaryOutcome: Int(runsTaken))
+            NextBowlerView(outcome: $outcome, offTheBat: false, match: match, secondaryOutcome: Int(runsTaken))
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.inningsSwitchViewShowing) {
-            InningsSwitchView(outcome: $outcome, overthrow: overthrow, offTheBat: true, match: match, secondaryOutcome: Int(runsTaken))
+            InningsSwitchView(outcome: $outcome, offTheBat: true, match: match, secondaryOutcome: Int(runsTaken))
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.matchCompletedViewShowing) {
-            MatchCompletedView(outcome: $outcome, overthrow: overthrow, offTheBat: true, match: match, secondaryOutcome: Int(runsTaken))
+            MatchCompletedView(outcome: $outcome, offTheBat: true, match: match, secondaryOutcome: Int(runsTaken))
                 .interactiveDismissDisabled(true)
         }
     }

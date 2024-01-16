@@ -411,15 +411,15 @@ struct WicketView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $sheetManager.nextBowlerViewShowing) {
-            NextBowlerView(outcome: $outcome, overthrow: false, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
+            NextBowlerView(outcome: $outcome, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.inningsSwitchViewShowing) {
-            InningsSwitchView(outcome: $outcome, overthrow: false, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
+            InningsSwitchView(outcome: $outcome, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.matchCompletedViewShowing) {
-            MatchCompletedView(outcome: $outcome, overthrow: false, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
+            MatchCompletedView(outcome: $outcome, offTheBat: batterHitBall, match: match, secondaryOutcome: Int(runsTaken), outString: modeOfDismissal, wicketWasWide: wideDelivery, playerThatGotOut: batterDismissedId, newBatter: nextBatterId, crossedOver: crossedOver, fielderResponsible: fielderResponsibleId)
                 .interactiveDismissDisabled(true)
         }
         

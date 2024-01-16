@@ -20,7 +20,6 @@ struct MatchCompletedView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Binding var outcome: Outcome
-    var overthrow: Bool
     var offTheBat: Bool
     @ObservedObject var match: FetchedResults<Match>.Element
     var secondaryOutcome: Int?
@@ -45,9 +44,9 @@ struct MatchCompletedView: View {
                         if (outcome == Outcome.wicket) {
                             DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: secondaryOutcome, outString: outString, offTheBat: offTheBat, wicketWasWide: wicketWasWide!, playerThatGotOut: playerThatGotOut, newBatter: nil, crossedOver: crossedOver!, fielderResponsible: fielderResponsible, newBowler: nil, context: managedObjectContext)
                         } else if (outcome == Outcome.bye || outcome == Outcome.legBye || outcome == Outcome.wide || outcome == Outcome.noBall) {
-                            DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
+                            DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
                         } else {
-                            DataController.shared.updateMatchScore(match: match, outcome: outcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
+                            DataController.shared.updateMatchScore(match: match, outcome: outcome, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
                         }
                         DataController.shared.completeMatch(match: match, context: managedObjectContext)
                         sheetManager.byesViewShowing = false

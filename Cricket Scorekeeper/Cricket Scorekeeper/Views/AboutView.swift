@@ -63,7 +63,7 @@ struct AboutView: View {
                     Spacer()
                 }
                 HStack {
-                    Text("- In the scoring menu, the undo button is the button with the undo arrow on the bottom right. It removes the previous delivery as if it never happened. However, after a wicket falls or an over is finished, previous deliveries cannot be undone. Please be absolutely sure of the wicket or over switch before you confirm it.")
+                    Text("- In the scoring menu, the undo button removes the previous delivery as if it never happened. However, after a wicket falls or an over is finished, previous deliveries cannot be undone. Please be absolutely sure of the wicket or over switch before you confirm it.")
                         .font(.subheadline)
                         .padding(EdgeInsets(top: 0, leading: 25, bottom: 15, trailing: 25))
                     Spacer()

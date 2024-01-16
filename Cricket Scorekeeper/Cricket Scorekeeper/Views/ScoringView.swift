@@ -26,7 +26,6 @@ struct ScoringView: View {
         entity: Delivery.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \Delivery.index, ascending: true)]
     ) var deliveries: FetchedResults<Delivery>
-    @State var overthrow = false
     @State var undoNotPossible = false
     @State private var forceRefresh = false
     @State var outcome: Outcome = Outcome.dot
@@ -254,24 +253,24 @@ struct ScoringView: View {
                     HStack (spacing: 10) {
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((overthrow && (match.teamBowlingFirst?.runs ?? -1) + 4 > (match.teamBattingFirst?.runs ?? -1)) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.dot
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.dot
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.dot, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.dot, offTheBat: true, context: managedObjectContext)
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.dot
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.dot
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.dot, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.dot, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -287,24 +286,24 @@ struct ScoringView: View {
                         }
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((overthrow && (match.teamBowlingFirst?.runs ?? -1) + 5 > (match.teamBattingFirst?.runs ?? -1)) || (match.teamBowlingFirst?.runs ?? -1) + 1 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if ((match.teamBowlingFirst?.runs ?? -1) + 1 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.one
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.one
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.one, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.one, offTheBat: true, context: managedObjectContext)
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.one
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.one
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.one, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.one, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -320,24 +319,24 @@ struct ScoringView: View {
                         }
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((overthrow && (match.teamBowlingFirst?.runs ?? -1) + 6 > (match.teamBattingFirst?.runs ?? -1)) || (match.teamBowlingFirst?.runs ?? -1) + 2 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if ((match.teamBowlingFirst?.runs ?? -1) + 2 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.two
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.two
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.two, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.two, offTheBat: true, context: managedObjectContext)
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.two
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.two
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.two, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.two, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -353,24 +352,24 @@ struct ScoringView: View {
                         }
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((overthrow && (match.teamBowlingFirst?.runs ?? -1) + 7 > (match.teamBattingFirst?.runs ?? -1)) || (match.teamBowlingFirst?.runs ?? -1) + 3 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if ((match.teamBowlingFirst?.runs ?? -1) + 3 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.three
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.three
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.three, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.three, offTheBat: true, context: managedObjectContext)
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.three
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.three
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.three, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.three, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -386,25 +385,25 @@ struct ScoringView: View {
                         }
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((overthrow && (match.teamBowlingFirst?.runs ?? -1) + 8 > (match.teamBattingFirst?.runs ?? -1)) || (match.teamBowlingFirst?.runs ?? -1) + 4 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if ((match.teamBowlingFirst?.runs ?? -1) + 4 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.four
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.four
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.four, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.four, offTheBat: true, context: managedObjectContext)
 
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.four
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.four
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.four, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.four, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -420,24 +419,24 @@ struct ScoringView: View {
                         }
                         Button(action: {
                             if (match.firstInningsFinished) {
-                                if ((match.teamBowlingFirst?.runs ?? -1) + 6 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if ((match.teamBowlingFirst?.runs ?? -1) + 6 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.six
                                     sheetManager.matchCompletedViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.six
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.six, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.six, offTheBat: true, context: managedObjectContext)
                                 }
                             } else {
-                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries)/2) {
+                                if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
                                     outcome = Outcome.six
                                     sheetManager.inningsSwitchViewShowing = true
                                 } else if (match.deliveriesBowledThatCount % 6 == 5) {
                                     outcome = Outcome.six
                                     sheetManager.nextBowlerViewShowing = true
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.six, overthrow: overthrow, offTheBat: true, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: Outcome.six, offTheBat: true, context: managedObjectContext)
                                 }
                             }
                         }) {
@@ -513,11 +512,111 @@ struct ScoringView: View {
                                     .foregroundColor(colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255))
                             }
                         }
+                        Menu {
+                            Text("Less Common Occurrences")
+                            Button(
+                                action: {
+                                    if (match.firstInningsFinished) {
+                                        if ((match.teamBowlingFirst?.runs ?? -1) + 5 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 5 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.five
+                                            sheetManager.matchCompletedViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.five
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.five, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    } else {
+                                        if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.five
+                                            sheetManager.inningsSwitchViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.five
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.five, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    }
+                                },
+                                label: {Text("5 Runs")}
+                            )
+                            Button(
+                                action: {
+                                    if (match.firstInningsFinished) {
+                                        if ((match.teamBowlingFirst?.runs ?? -1) + 7 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 7 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.seven
+                                            sheetManager.matchCompletedViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.seven
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.seven, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    } else {
+                                        if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.seven
+                                            sheetManager.inningsSwitchViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.seven
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.seven, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    }
+                                },
+                                label: {Text("7 Runs")}
+                            )
+                            Button(
+                                action: {
+                                    if (match.firstInningsFinished) {
+                                        if ((match.teamBowlingFirst?.runs ?? -1) + 8 > (match.teamBattingFirst?.runs ?? -1) || match.deliveriesBowledThatCount + 8 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.eight
+                                            sheetManager.matchCompletedViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.eight
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.eight, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    } else {
+                                        if (match.deliveriesBowledThatCount + 1 == (match.totalDeliveries) / 2) {
+                                            outcome = Outcome.eight
+                                            sheetManager.inningsSwitchViewShowing = true
+                                        } else if (match.deliveriesBowledThatCount % 6 == 5) {
+                                            outcome = Outcome.eight
+                                            sheetManager.nextBowlerViewShowing = true
+                                        } else {
+                                            DataController.shared.updateMatchScore(match: match, outcome: Outcome.eight, offTheBat: true, context: managedObjectContext)
+                                        }
+                                    }
+                                },
+                                label: {Text("8 Runs")}
+                            )
+                        } label: {
+                            Label (
+                                title: {},
+                                icon: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.clear)
+                                            .stroke(colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255), lineWidth: 2)
+                                            .frame(width: 55, height: 55)
+                                        Image(systemName: "ellipsis")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255))
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(EdgeInsets(top: 0, leading: 25, bottom: 0, trailing: 25))
+                    HStack {
                         Button(action: {
                             if (match.deliveriesBowled == 0) {
                                 undoNotPossible = true
                             } else {
-                                let deliveries: NSSet = match.inningsTracker ?? NSSet()
+                                let deliveries: NSSet = match.overTracker ?? NSSet()
                                 let sortedDeliveries = deliveries.filter { $0 is Delivery }.map { $0 as! Delivery }.sorted(by: { $0.index < $1.index })
                                 let mostRecentDelivery = sortedDeliveries.last!
                                 if (mostRecentDelivery.outcome == "W") {
@@ -527,15 +626,18 @@ struct ScoringView: View {
                                 }
                             }
                         }) {
-                            ZStack {
-                                Circle()
-                                    .fill(colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255))
-                                    .frame(width: 55, height: 55)
-                                Image(systemName: "arrow.uturn.backward")
-                                    .font(.title2)
+                            HStack {
+                                Text("Undo")
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                Image(systemName:"arrow.uturn.backward")
+                                    .fontWeight(.semibold)
                             }
+                            .padding(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+                            .frame(width: 125, height: 55)
+                            .font(.headline)
+                            .foregroundColor(Color.white)
+                            .background(colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255))
+                            .cornerRadius(30)
                         }
                         .alert("Error", isPresented: $undoNotPossible) {
                             Button("OK", role: .cancel) {
@@ -549,13 +651,6 @@ struct ScoringView: View {
                             }
                         }
                     }
-                    .padding(EdgeInsets(top: 0, leading: 25, bottom: 0, trailing: 25))
-                    HStack {
-                        Toggle("Add 4 Runs", isOn: $overthrow)
-                                        .toggleStyle(SwitchToggleStyle(tint: colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255)))
-                                        .fontWeight(.semibold)
-                        Spacer()
-                    }
                     .padding(EdgeInsets(top: 10, leading: 30, bottom: 0, trailing: 30))
                 }
                 .navigationBarHidden(true)
@@ -567,27 +662,27 @@ struct ScoringView: View {
             WicketView(match: match)
         }
         .sheet(isPresented: $sheetManager.widesViewShowing) {
-            WidesView(overthrow: $overthrow, match: match)
+            WidesView(match: match)
         }
         .sheet(isPresented: $sheetManager.noBallViewShowing) {
-            NoBallView(overthrow: $overthrow, match: match)
+            NoBallView(match: match)
         }
         .sheet(isPresented: $sheetManager.byesViewShowing) {
-            ByesView(overthrow: $overthrow, match: match)
+            ByesView(match: match)
         }
         .sheet(isPresented: $sheetManager.legByesViewShowing) {
-            LegByesView(overthrow: $overthrow, match: match)
+            LegByesView(match: match)
         }
         .sheet(isPresented: $sheetManager.nextBowlerViewShowing) {
-            NextBowlerView(outcome: $outcome, overthrow: overthrow, offTheBat: true, match: match)
+            NextBowlerView(outcome: $outcome, offTheBat: true, match: match)
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.inningsSwitchViewShowing) {
-            InningsSwitchView(outcome: $outcome, overthrow: overthrow, offTheBat: true, match: match)
+            InningsSwitchView(outcome: $outcome, offTheBat: true, match: match)
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $sheetManager.matchCompletedViewShowing) {
-            MatchCompletedView(outcome: $outcome, overthrow: overthrow, offTheBat: true, match: match)
+            MatchCompletedView(outcome: $outcome, offTheBat: true, match: match)
                 .interactiveDismissDisabled(true)
         }
         .onChange(of: match) {
@@ -617,7 +712,7 @@ struct ScoringView: View {
     }
     
     private func getIdentifierForLastDelivery() -> Int64 {
-        let deliveries = NSOrderedSet(set: (match.inningsTracker ?? NSSet()) as! Set<AnyHashable>).sorted { ($0 as! Delivery).index < ($1 as! Delivery).index } as! [Delivery]
+        let deliveries = NSOrderedSet(set: (match.overTracker ?? NSSet()) as! Set<AnyHashable>).sorted { ($0 as! Delivery).index < ($1 as! Delivery).index } as! [Delivery]
         return deliveries.last?.index ?? 0
     }
     

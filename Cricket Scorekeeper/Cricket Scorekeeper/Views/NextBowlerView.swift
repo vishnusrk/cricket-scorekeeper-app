@@ -21,7 +21,6 @@ struct NextBowlerView: View {
     @State private var nextBowlerId: UUID = UUID()
     @State private var allFieldsNotFilled = false
     @Binding var outcome: Outcome
-    var overthrow: Bool
     var offTheBat: Bool
     var match: FetchedResults<Match>.Element
     var secondaryOutcome: Int?
@@ -73,9 +72,9 @@ struct NextBowlerView: View {
                             if (outcome == Outcome.wicket) {
                                 DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: secondaryOutcome, outString: outString, offTheBat: offTheBat, wicketWasWide: wicketWasWide!, playerThatGotOut: playerThatGotOut, newBatter: newBatter, crossedOver: crossedOver!, fielderResponsible: fielderResponsible, newBowler: nextBowlerId, context: managedObjectContext)
                             } else if (outcome == Outcome.bye || outcome == Outcome.legBye) {
-                                DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nextBowlerId, context: managedObjectContext)
+                                DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, offTheBat: offTheBat, newBowler: nextBowlerId, context: managedObjectContext)
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: outcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nextBowlerId, context: managedObjectContext)
+                                DataController.shared.updateMatchScore(match: match, outcome: outcome, offTheBat: offTheBat, newBowler: nextBowlerId, context: managedObjectContext)
                             }
                             try? managedObjectContext.save()
                             sheetManager.byesViewShowing = false

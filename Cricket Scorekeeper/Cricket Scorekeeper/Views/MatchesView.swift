@@ -70,7 +70,7 @@ struct MatchesView: View {
                                 .multilineTextAlignment(.center)
                                 .padding(EdgeInsets(top: 0, leading: 25, bottom: 0, trailing: 25))
                             Spacer()
-                            Text(match.completed ? "\(match.result ?? "Completed")" : "In Progress")
+                            Text(match.completed ? "\(match.result ?? "Completed")" : (match.started ? "In Progress" : "Not Yet Started"))
                                 .font(.caption)
                                 .multilineTextAlignment(.center)
                                 .padding(EdgeInsets(top: 0, leading: 25, bottom: 10, trailing: 25))

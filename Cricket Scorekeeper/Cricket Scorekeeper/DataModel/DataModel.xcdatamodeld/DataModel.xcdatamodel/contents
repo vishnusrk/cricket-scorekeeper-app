@@ -4,7 +4,7 @@
         <attribute name="additionalInfo" optional="YES" attributeType="String"/>
         <attribute name="index" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="outcome" optional="YES" attributeType="String"/>
-        <relationship name="specificMatch" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Match" inverseName="inningsTracker" inverseEntity="Match"/>
+        <relationship name="specificMatch" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Match" inverseName="overTracker" inverseEntity="Match"/>
     </entity>
     <entity name="Match" representedClassName=".Match" syncable="YES" codeGenerationType="class">
         <attribute name="battersSentIn" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -25,8 +25,8 @@
         <relationship name="bowler" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
         <relationship name="currentBattingTeam" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
         <relationship name="currentBowlingTeam" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
-        <relationship name="inningsTracker" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Delivery" inverseName="specificMatch" inverseEntity="Delivery"/>
         <relationship name="nonStriker" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
+        <relationship name="overTracker" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Delivery" inverseName="specificMatch" inverseEntity="Delivery"/>
         <relationship name="striker" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Player"/>
         <relationship name="teamBattingFirst" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>
         <relationship name="teamBowlingFirst" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Team"/>

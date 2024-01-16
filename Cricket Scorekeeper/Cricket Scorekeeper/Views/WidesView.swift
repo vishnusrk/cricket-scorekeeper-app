@@ -18,7 +18,6 @@ struct WidesView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Binding var overthrow: Bool
     @State private var runsTaken: String = ""
     @State private var allFieldsNotFilled = false
     @State var outcome = Outcome.wide
@@ -79,25 +78,19 @@ struct WidesView: View {
                 }
                 .padding()
                 HStack {
-                    Toggle("Add 4 Runs", isOn: $overthrow)
-                                    .toggleStyle(SwitchToggleStyle(tint: colorScheme == .dark ? Color(red: 89/255, green: 206/255, blue: 89/255) : Color(red: 85/255, green: 185/255, blue: 85/255)))
-                                    .fontWeight(.semibold)
                     Spacer()
                 }
                 .padding(EdgeInsets(top: 10, leading: 25, bottom: 20, trailing: 25))
                 HStack {
                     Button(action: {
-                        let x = (5 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
-                        let overthrowCondition: Bool = overthrow && (x > match.teamBattingFirst?.runs ?? -1)
-                        let y = (1 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
+                        let x = (1 + Int64(Int(runsTaken) ?? -1) + (match.teamBowlingFirst?.runs ?? -1))
                         if (match.firstInningsFinished) {
                             if (runsTaken.isEmpty) {
                                 allFieldsNotFilled = true
-                            } else if (overthrowCondition || y > (match.teamBattingFirst?.runs ?? -1)) {
+                            } else if (x > (match.teamBattingFirst?.runs ?? -1)) {
                                 sheetManager.matchCompletedViewShowing = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.wide, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: false, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.wide, secondaryOutcome: Int(runsTaken), offTheBat: false, context: managedObjectContext)
                                 sheetManager.widesViewShowing = false
                                 dismiss()
                             }
@@ -105,8 +98,7 @@ struct WidesView: View {
                             if (runsTaken.isEmpty) {
                                 allFieldsNotFilled = true
                             } else {
-                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.wide, secondaryOutcome: Int(runsTaken), overthrow: overthrow, offTheBat: false, context: managedObjectContext)
-                                overthrow = false
+                                DataController.shared.updateMatchScore(match: match, outcome: Outcome.wide, secondaryOutcome: Int(runsTaken), offTheBat: false, context: managedObjectContext)
                                 sheetManager.widesViewShowing = false
                                 dismiss()
                             }
@@ -129,7 +121,6 @@ struct WidesView: View {
                         Text("Please specify the number of runs taken.")
                     }
                     Button(action: {
-                        overthrow = false
                         sheetManager.widesViewShowing = false
                         dismiss()
                     }) {
@@ -148,7 +139,7 @@ struct WidesView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $sheetManager.matchCompletedViewShowing) {
-            MatchCompletedView(outcome: $outcome, overthrow: overthrow, offTheBat: false, match: match, secondaryOutcome: Int(runsTaken))
+            MatchCompletedView(outcome: $outcome, offTheBat: false, match: match, secondaryOutcome: Int(runsTaken))
                 .interactiveDismissDisabled(true)
         }
     }

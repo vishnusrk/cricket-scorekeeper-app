@@ -20,7 +20,6 @@ struct InningsSwitchView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var allFieldsNotFilled = false
     @Binding var outcome: Outcome
-    var overthrow: Bool
     var offTheBat: Bool
     var match: FetchedResults<Match>.Element
     var secondaryOutcome: Int?
@@ -158,9 +157,9 @@ struct InningsSwitchView: View {
                                 if (outcome == Outcome.wicket) {
                                     DataController.shared.updateMatchScore(match: match, outcome: Outcome.wicket, secondaryOutcome: secondaryOutcome, outString: outString, offTheBat: offTheBat, wicketWasWide: wicketWasWide!, playerThatGotOut: playerThatGotOut, newBatter: nil, crossedOver: crossedOver!, fielderResponsible: fielderResponsible, newBowler: nil, context: managedObjectContext)
                                 } else if (outcome == Outcome.bye || outcome == Outcome.legBye) {
-                                    DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: outcome, secondaryOutcome: secondaryOutcome, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
                                 } else {
-                                    DataController.shared.updateMatchScore(match: match, outcome: outcome, overthrow: overthrow, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
+                                    DataController.shared.updateMatchScore(match: match, outcome: outcome, offTheBat: offTheBat, newBowler: nil, context: managedObjectContext)
                                 }
                                 DataController.shared.switchInnings(match: match, striker: strikerId, nonStriker: nonStrikerId, bowler: bowlerId, context: managedObjectContext)
                                 sheetManager.byesViewShowing = false

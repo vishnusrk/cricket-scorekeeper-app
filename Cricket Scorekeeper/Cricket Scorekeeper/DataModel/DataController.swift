@@ -7,11 +7,9 @@ DataController.swift
  
 Class responsible for making changes to matches and saving them to 
 CoreData. Has methods to create a match, start it, update it, undo
-its last delivery, switch its innings, and complete it. Due to the
-nuances in how cricket scores work, the update match method is 
-particularly long, with many cases to account for. Saves all changes
-made to CoreData using the save method. Works in conjunction with 
-the DataModel xcdatamodel file outlining the Match, Team, Player,
+its last delivery, switch its innings, and complete it. Saves all
+changes made to CoreData using the save method. Works in conjunction
+with the DataModel xcdatamodel file outlining the Match, Team, Player,
 and Delivery entities that are used to keep track of the score.
 */
 
@@ -27,7 +25,7 @@ class DataController: ObservableObject {
     init() {
         container.loadPersistentStores {desc, error in
             if let error = error {
-                print("Yo there's an error: \(error.localizedDescription)")
+                print("Error: \(error.localizedDescription)")
             }
         }
     }
@@ -53,63 +51,15 @@ class DataController: ObservableObject {
         match.totalDeliveries = overs * 12
         match.teamSize = teamSize
         match.firstInningsDeliveriesBowledThatCount = 0
-        match.inningsTracker = NSSet()
+        match.overTracker = NSSet()
         match.bowlerHasNotStartedOver = true
         match.numDifferentBowlers = 0
         match.battersSentIn = 0
         match.result = ""
         let teamOne = Team(context: context)
-        teamOne.name = teamOneName
-        teamOne.runs = 0
-        teamOne.extras = 0
-        teamOne.wicketsLost = 0
-        var teamOnePlayerArray = [Player]()
-        for playerName in teamOnePlayerNames {
-            if (playerName != "") {
-                let player = Player(context: context)
-                player.id = UUID()
-                player.name = playerName
-                player.runs = 0
-                player.wickets = 0
-                player.runsConceded = 0
-                player.ballsFaced = 0
-                player.ballsBowled = 0
-                player.fours = 0
-                player.sixes = 0
-                player.extrasBowled = 0
-                player.battingPosition = 0
-                player.bowlingPosition = 0
-                player.outDescription = "not out"
-                teamOnePlayerArray.append(player)
-            }
-        }
-        teamOne.players = NSSet(array: teamOnePlayerArray)
+        _initTeam(team: teamOne, teamName: teamOneName, playerNames: teamOnePlayerNames, context: context)
         let teamTwo = Team(context: context)
-        teamTwo.name = teamTwoName
-        teamTwo.runs = 0
-        teamTwo.extras = 0
-        teamTwo.wicketsLost = 0
-        var teamTwoPlayerArray = [Player]()
-        for playerName in teamTwoPlayerNames {
-            if (playerName != "") {
-                let player = Player(context: context)
-                player.id = UUID()
-                player.name = playerName
-                player.runs = 0
-                player.wickets = 0
-                player.runsConceded = 0
-                player.ballsFaced = 0
-                player.ballsBowled = 0
-                player.fours = 0
-                player.sixes = 0
-                player.extrasBowled = 0
-                player.battingPosition = 0
-                player.bowlingPosition = 0
-                player.outDescription = "not out"
-                teamTwoPlayerArray.append(player)
-            }
-        }
-        teamTwo.players = NSSet(array: teamTwoPlayerArray)
+        _initTeam(team: teamTwo, teamName: teamTwoName, playerNames: teamTwoPlayerNames, context: context)
         let teams = [teamOne, teamTwo]
         match.teams = NSSet(array: teams)
         save(context: context)
@@ -117,12 +67,11 @@ class DataController: ObservableObject {
     }
     
     func startMatch(match: Match, battingTeam: String, striker: UUID?, nonStriker: UUID?, bowler: UUID?, context: NSManagedObjectContext) {
-        let teamsArray = match.teams?.compactMap { $0 as? Team } ?? []
-        for team in teamsArray {
-            if (team.name == battingTeam) {
-                match.teamBattingFirst = team;
+        for team in match.teams ?? NSSet() {
+            if ((team as AnyObject).name == battingTeam) {
+                match.teamBattingFirst = team as? Team;
             } else {
-                match.teamBowlingFirst = team;
+                match.teamBowlingFirst = team as? Team;
             }
         }
         match.currentBattingTeam = match.teamBattingFirst
@@ -152,1282 +101,55 @@ class DataController: ObservableObject {
         print("startMatch: Context saved!")
     }
     
-
-    func updateMatchScore(match: Match, outcome: Outcome, secondaryOutcome: Int? = 0, outString: String? = "", overthrow: Bool = false, offTheBat: Bool, wicketWasWide: Bool = false, playerThatGotOut: UUID? = nil, newBatter: UUID? = nil, crossedOver: Bool = false,  fielderResponsible: UUID? = nil, newBowler: UUID? = nil, context: NSManagedObjectContext) {
+    func updateMatchScore(match: Match, outcome: Outcome, secondaryOutcome: Int? = 0, outString: String? = "", offTheBat: Bool, wicketWasWide: Bool = false, playerThatGotOut: UUID? = nil, newBatter: UUID? = nil, crossedOver: Bool = false,  fielderResponsible: UUID? = nil, newBowler: UUID? = nil, context: NSManagedObjectContext) {
         switch outcome {
         case Outcome.dot:
-            if (overthrow) {
-                match.currentBattingTeam?.runs += 4
-                match.striker?.runs += 4
-                match.bowler?.runsConceded += 4
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "0+4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            } else {
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "0"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            }
-            match.striker?.ballsFaced += 1
-            match.bowler?.ballsBowled += 1
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
+            _incrementMatchScoreWithNonExtras(runsToAdd: 0, match: match, context: context)
         case Outcome.one:
-            if (overthrow) {
-                match.currentBattingTeam?.runs += 5
-                match.striker?.runs += 5
-                match.bowler?.runsConceded += 5
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "1+4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            } else {
-                match.currentBattingTeam?.runs += 1
-                match.striker?.runs += 1
-                match.bowler?.runsConceded += 1
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "1"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            }
-            match.striker?.ballsFaced += 1
-            match.bowler?.ballsBowled += 1
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
-            let temp = match.striker
-            match.striker = match.nonStriker
-            match.nonStriker = temp
+            _incrementMatchScoreWithNonExtras(runsToAdd: 1, match: match, context: context)
         case Outcome.two:
-            if (overthrow) {
-                match.currentBattingTeam?.runs += 6
-                match.striker?.runs += 6
-                match.bowler?.runsConceded += 6
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "2+4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            } else {
-                match.currentBattingTeam?.runs += 2
-                match.striker?.runs += 2
-                match.bowler?.runsConceded += 2
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "2"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            }
-            match.striker?.ballsFaced += 1
-            match.bowler?.ballsBowled += 1
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
+            _incrementMatchScoreWithNonExtras(runsToAdd: 2, match: match, context: context)
         case Outcome.three:
-            if (overthrow) {
-                match.currentBattingTeam?.runs += 7
-                match.striker?.runs += 7
-                match.bowler?.runsConceded += 7
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "3+4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            } else {
-                match.currentBattingTeam?.runs += 3
-                match.striker?.runs += 3
-                match.bowler?.runsConceded += 3
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "3"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            }
-            match.striker?.ballsFaced += 1
-            match.bowler?.ballsBowled += 1
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
-            let temp = match.striker
-            match.striker = match.nonStriker
-            match.nonStriker = temp
+            _incrementMatchScoreWithNonExtras(runsToAdd: 3, match: match, context: context)
         case Outcome.four:
-            if (overthrow) {
-                match.currentBattingTeam?.runs += 8
-                match.striker?.runs += 8
-                match.bowler?.runsConceded += 8
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "4+4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            } else {
-                match.currentBattingTeam?.runs += 4
-                match.striker?.runs += 4
-                match.bowler?.runsConceded += 4
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "4"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-            }
-            match.striker?.ballsFaced += 1
-            match.striker?.fours += 1
-            match.bowler?.ballsBowled += 1
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
+            _incrementMatchScoreWithNonExtras(runsToAdd: 4, match: match, context: context)
+        case Outcome.five:
+            _incrementMatchScoreWithNonExtras(runsToAdd: 5, match: match, context: context)
         case Outcome.six:
-            match.currentBattingTeam?.runs += 6
-            match.striker?.runs += 6
-            match.bowler?.runsConceded += 6
-            match.striker?.ballsFaced += 1
-            match.striker?.sixes += 1
-            match.bowler?.ballsBowled += 1
-            let delivery = Delivery(context: context)
-            delivery.index = match.deliveriesBowled
-            delivery.outcome = "6"
-            let innings = match.inningsTracker
-            let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-            mutableCopy.add(delivery)
-            match.inningsTracker = mutableCopy
-            match.deliveriesBowled += 1
-            match.deliveriesBowledThatCount += 1
+            _incrementMatchScoreWithNonExtras(runsToAdd: 6, match: match, context: context)
+        case Outcome.seven:
+            _incrementMatchScoreWithNonExtras(runsToAdd: 7, match: match, context: context)
+        case Outcome.eight:
+            _incrementMatchScoreWithNonExtras(runsToAdd: 8, match: match, context: context)
         case Outcome.wide:
-            switch secondaryOutcome {
-            case 0:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 5
-                    match.currentBattingTeam?.extras += 5
-                    match.bowler?.extrasBowled += 5
-                    match.bowler?.runsConceded += 5
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "0wd+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                } else {
-                    match.currentBattingTeam?.runs += 1
-                    match.currentBattingTeam?.extras += 1
-                    match.bowler?.extrasBowled += 1
-                    match.bowler?.runsConceded += 1
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "0wd"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                }
-            case 1:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 6
-                    match.currentBattingTeam?.extras += 6
-                    match.bowler?.extrasBowled += 6
-                    match.bowler?.runsConceded += 6
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1wd+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                } else {
-                    match.currentBattingTeam?.runs += 2
-                    match.currentBattingTeam?.extras += 2
-                    match.bowler?.extrasBowled += 2
-                    match.bowler?.runsConceded += 2
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1wd"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                }
-            case 2:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 7
-                    match.currentBattingTeam?.extras += 7
-                    match.bowler?.extrasBowled += 7
-                    match.bowler?.runsConceded += 7
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2wd+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                } else {
-                    match.currentBattingTeam?.runs += 3
-                    match.currentBattingTeam?.extras += 3
-                    match.bowler?.extrasBowled += 3
-                    match.bowler?.runsConceded += 3
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2wd"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                }
-            case 3:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 8
-                    match.currentBattingTeam?.extras += 8
-                    match.bowler?.extrasBowled += 8
-                    match.bowler?.runsConceded += 8
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3wd+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                } else {
-                    match.currentBattingTeam?.runs += 4
-                    match.currentBattingTeam?.extras += 4
-                    match.bowler?.extrasBowled += 4
-                    match.bowler?.runsConceded += 4
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3wd"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                }
-            case 4:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 9
-                    match.currentBattingTeam?.extras += 9
-                    match.bowler?.extrasBowled += 9
-                    match.bowler?.runsConceded += 9
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4wd+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                } else {
-                    match.currentBattingTeam?.runs += 5
-                    match.currentBattingTeam?.extras += 5
-                    match.bowler?.extrasBowled += 5
-                    match.bowler?.runsConceded += 5
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4wd"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                }
-            default:
-                print("")
-            }
+            _incrementMatchScoreWithWide(runsToAdd: (secondaryOutcome ?? -1), match: match, context: context)
         case Outcome.noBall:
-            if (offTheBat) {
-                switch secondaryOutcome {
-                case 0:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 5
-                        match.currentBattingTeam?.extras += 5
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 5
-                        match.bowler?.runsConceded += 5
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "0nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 1
-                        match.currentBattingTeam?.extras += 1
-                        match.bowler?.extrasBowled += 1
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "0nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                case 1:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 6
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 5
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 6
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "1nb+4"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    } else {
-                        match.currentBattingTeam?.runs += 2
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 1
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 2
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "1nb"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    }
-                case 2:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 7
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 6
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 7
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "2nb+4"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 3
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 2
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 3
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "2nb"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                case 3:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 8
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 7
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 8
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "3nb+4"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    } else {
-                        match.currentBattingTeam?.runs += 4
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 3
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 4
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "3nb"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    }
-                case 4:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 9
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 8
-                        match.striker?.fours += 1
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 9
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "4nb+4"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 5
-                        match.currentBattingTeam?.extras += 1
-                        match.striker?.runs += 4
-                        match.striker?.fours += 1
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 5
-                        match.bowler?.extrasBowled += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "4nb"
-                        delivery.additionalInfo = "*"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                case 6:
-                    match.currentBattingTeam?.runs += 7
-                    match.currentBattingTeam?.extras += 1
-                    match.striker?.runs += 6
-                    match.striker?.sixes += 1
-                    match.striker?.ballsFaced += 1
-                    match.bowler?.runsConceded += 7
-                    match.bowler?.extrasBowled += 1
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "6nb"
-                    delivery.additionalInfo = "*"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                    match.deliveriesBowled += 1
-                default:
-                    print("")
-                }
-            } else {
-                switch secondaryOutcome {
-                case 0:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 5
-                        match.currentBattingTeam?.extras += 5
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 5
-                        match.bowler?.runsConceded += 5
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "0nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 1
-                        match.currentBattingTeam?.extras += 1
-                        match.bowler?.extrasBowled += 1
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 1
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "0nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                case 1:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 6
-                        match.currentBattingTeam?.extras += 6
-                        match.bowler?.extrasBowled += 6
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.runsConceded += 6
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "1nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    } else {
-                        match.currentBattingTeam?.runs += 2
-                        match.currentBattingTeam?.extras += 2
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 2
-                        match.bowler?.runsConceded += 2
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "1nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    }
-                case 2:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 7
-                        match.currentBattingTeam?.extras += 7
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 7
-                        match.bowler?.runsConceded += 7
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "2nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 3
-                        match.currentBattingTeam?.extras += 3
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 3
-                        match.bowler?.runsConceded += 3
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "2nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                case 3:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 8
-                        match.currentBattingTeam?.extras += 8
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 8
-                        match.bowler?.runsConceded += 8
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "3nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    } else {
-                        match.currentBattingTeam?.runs += 4
-                        match.currentBattingTeam?.extras += 4
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 4
-                        match.bowler?.runsConceded += 4
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "3nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                        let temp = match.striker
-                        match.striker = match.nonStriker
-                        match.nonStriker = temp
-                    }
-                case 4:
-                    if (overthrow) {
-                        match.currentBattingTeam?.runs += 9
-                        match.currentBattingTeam?.extras += 9
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 9
-                        match.bowler?.runsConceded += 9
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "4nb+4"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 5
-                        match.currentBattingTeam?.extras += 5
-                        match.striker?.ballsFaced += 1
-                        match.bowler?.extrasBowled += 5
-                        match.bowler?.runsConceded += 5
-                        let delivery = Delivery(context: context)
-                        delivery.index = match.deliveriesBowled
-                        delivery.outcome = "4nb"
-                        let innings = match.inningsTracker
-                        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                        mutableCopy.add(delivery)
-                        match.inningsTracker = mutableCopy
-                        match.deliveriesBowled += 1
-                    }
-                default:
-                    print("")
-                }
-            }
+            _incrementMatchScoreWithNoBall(runsToAdd: (secondaryOutcome ?? -1), batterHitBall: offTheBat, match: match, context: context)
         case Outcome.bye:
-            switch secondaryOutcome {
-            case 1:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 5
-                    match.currentBattingTeam?.extras += 5
-                    match.bowler?.extrasBowled += 5
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1b+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 1
-                    match.currentBattingTeam?.extras += 1
-                    match.bowler?.extrasBowled += 1
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1b"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-                let temp = match.striker
-                match.striker = match.nonStriker
-                match.nonStriker = temp
-            case 2:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 6
-                    match.currentBattingTeam?.extras += 6
-                    match.bowler?.extrasBowled += 6
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2b+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 2
-                    match.currentBattingTeam?.extras += 2
-                    match.bowler?.extrasBowled += 2
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2b"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-            case 3:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 7
-                    match.currentBattingTeam?.extras += 7
-                    match.bowler?.extrasBowled += 7
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3b+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 3
-                    match.currentBattingTeam?.extras += 3
-                    match.bowler?.extrasBowled += 3
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3b"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-                let temp = match.striker
-                match.striker = match.nonStriker
-                match.nonStriker = temp
-            case 4:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 8
-                    match.currentBattingTeam?.extras += 8
-                    match.bowler?.extrasBowled += 8
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4b+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 4
-                    match.currentBattingTeam?.extras += 4
-                    match.bowler?.extrasBowled += 4
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4b"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-            default:
-                print("")
-            }
+            _incrementMatchScoreWithBye(runsToAdd: (secondaryOutcome ?? -1), isLegBye: false, match: match, context: context)
         case Outcome.legBye:
-            switch secondaryOutcome {
-            case 1:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 5
-                    match.currentBattingTeam?.extras += 5
-                    match.bowler?.extrasBowled += 5
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1lb+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 1
-                    match.currentBattingTeam?.extras += 1
-                    match.bowler?.extrasBowled += 1
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "1lb"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-                let temp = match.striker
-                match.striker = match.nonStriker
-                match.nonStriker = temp
-            case 2:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 6
-                    match.currentBattingTeam?.extras += 6
-                    match.bowler?.extrasBowled += 6
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2lb+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 2
-                    match.currentBattingTeam?.extras += 2
-                    match.bowler?.extrasBowled += 2
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "2lb"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-            case 3:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 7
-                    match.currentBattingTeam?.extras += 7
-                    match.bowler?.extrasBowled += 7
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3lb+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 3
-                    match.currentBattingTeam?.extras += 3
-                    match.bowler?.extrasBowled += 3
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "3lb"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-                let temp = match.striker
-                match.striker = match.nonStriker
-                match.nonStriker = temp
-            case 4:
-                if (overthrow) {
-                    match.currentBattingTeam?.runs += 8
-                    match.currentBattingTeam?.extras += 8
-                    match.bowler?.extrasBowled += 8
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4lb+4"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                } else {
-                    match.currentBattingTeam?.runs += 4
-                    match.currentBattingTeam?.extras += 4
-                    match.bowler?.extrasBowled += 4
-                    let delivery = Delivery(context: context)
-                    delivery.index = match.deliveriesBowled
-                    delivery.outcome = "4lb"
-                    let innings = match.inningsTracker
-                    let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                    mutableCopy.add(delivery)
-                    match.inningsTracker = mutableCopy
-                }
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.deliveriesBowled += 1
-                match.deliveriesBowledThatCount += 1
-            default:
-                print("")
-            }
+            _incrementMatchScoreWithBye(runsToAdd: (secondaryOutcome ?? -1), isLegBye: true, match: match, context: context)
         case Outcome.wicket:
-            let battingTeam = match.currentBattingTeam?.players?.compactMap { $0 as? Player } ?? []
-            let bowlingTeam = match.currentBowlingTeam?.players?.compactMap { $0 as? Player } ?? []
-            switch outString {
-            case "Run Out":
-                if (wicketWasWide) {
-                    if (offTheBat) {
-                        match.currentBattingTeam?.runs += 1 + Int64(secondaryOutcome ?? 0)
-                        match.striker?.runs += Int64(secondaryOutcome ?? 0)
-                        match.currentBattingTeam?.extras += 1
-                        match.bowler?.runsConceded += 1 + Int64(secondaryOutcome ?? 0)
-                        match.bowler?.extrasBowled += 1
-                    } else {
-                        match.currentBattingTeam?.runs += 1 + Int64(secondaryOutcome ?? 0)
-                        match.currentBattingTeam?.extras += 1 + Int64(secondaryOutcome ?? 0)
-                        match.bowler?.runsConceded += 1 + Int64(secondaryOutcome ?? 0)
-                        match.bowler?.extrasBowled += 1 + Int64(secondaryOutcome ?? 0)
-                    }
-                    if (crossedOver) {
-                        if ((secondaryOutcome ?? 0) % 2 == 0) {
-                            let temp = match.striker
-                            match.striker = match.nonStriker
-                            match.nonStriker = temp
-                        }
-                    } else {
-                        if ((secondaryOutcome ?? 0) % 2 != 0) {
-                            let temp = match.striker
-                            match.striker = match.nonStriker
-                            match.nonStriker = temp
-                        }
-                    }
-                } else {
-                    if (offTheBat) {
-                        match.striker?.runs += Int64(secondaryOutcome ?? 0)
-                        match.bowler?.runsConceded += Int64(secondaryOutcome ?? 0)
-                    } else {
-                        match.currentBattingTeam?.extras += Int64(secondaryOutcome ?? 0)
-                        match.bowler?.extrasBowled += Int64(secondaryOutcome ?? 0)
-                    }
-                    match.currentBattingTeam?.runs += Int64(secondaryOutcome ?? 0)
-                    match.striker?.ballsFaced += 1
-                    match.bowler?.ballsBowled += 1
-                    match.deliveriesBowledThatCount += 1
-                    if (crossedOver) {
-                        if ((secondaryOutcome ?? 0) % 2 == 0) {
-                            let temp = match.striker
-                            match.striker = match.nonStriker
-                            match.nonStriker = temp
-                        }
-                    } else {
-                        if ((secondaryOutcome ?? 0) % 2 != 0) {
-                            let temp = match.striker
-                            match.striker = match.nonStriker
-                            match.nonStriker = temp
-                        }
-                    }
-                }
-                match.currentBattingTeam?.wicketsLost += 1
-                var nextBatter: Player?
-                var fielderName: String = ""
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                for player in bowlingTeam {
-                    if (fielderResponsible == player.id) {
-                        fielderName = player.name ?? ""
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                if (playerThatGotOut == match.striker?.id) {
-                    match.striker?.outDescription = "run out (\(fielderName))"
-                    match.striker = nextBatter
-                } else {
-                    match.nonStriker?.outDescription = "run out (\(fielderName))"
-                    match.nonStriker = nextBatter
-                }
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Hit Wicket":
-                if (wicketWasWide) {
-                    match.currentBattingTeam?.runs += 1
-                    match.currentBattingTeam?.extras += 1
-                    match.bowler?.extrasBowled += 1
-                    match.bowler?.runsConceded += 1
-                } else {
-                    match.striker?.ballsFaced += 1
-                    match.bowler?.ballsBowled += 1
-                    match.deliveriesBowledThatCount += 1
-                }
-                match.bowler?.wickets += 1
-                match.currentBattingTeam?.wicketsLost += 1
-                var nextBatter: Player?
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "hit wicket b \(match.bowler?.name ?? "N/A")"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Stumped":
-                if (wicketWasWide) {
-                    match.currentBattingTeam?.runs += 1
-                    match.currentBattingTeam?.extras += 1
-                    match.bowler?.extrasBowled += 1
-                    match.bowler?.runsConceded += 1
-                } else {
-                    match.striker?.ballsFaced += 1
-                    match.bowler?.ballsBowled += 1
-                    match.deliveriesBowledThatCount += 1
-                }
-                match.bowler?.wickets += 1
-                match.currentBattingTeam?.wicketsLost += 1
-                var nextBatter: Player?
-                var fielderName: String = ""
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                for player in bowlingTeam {
-                    if (fielderResponsible == player.id) {
-                        fielderName = player.name ?? ""
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "st \(fielderName) b \(match.bowler?.name ?? "N/A")"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Caught":
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.bowler?.wickets += 1
-                match.currentBattingTeam?.wicketsLost += 1
-                match.deliveriesBowledThatCount += 1
-                var nextBatter: Player?
-                var fielderName: String = ""
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                for player in bowlingTeam {
-                    if (fielderResponsible == player.id) {
-                        fielderName = player.name ?? ""
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "c \(fielderName) b \(match.bowler?.name ?? "N/A")"
-                match.striker = nextBatter
-                if (crossedOver) {
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                }
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Bowled":
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.bowler?.wickets += 1
-                match.currentBattingTeam?.wicketsLost += 1
-                match.deliveriesBowledThatCount += 1
-                var nextBatter: Player?
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "b \(match.bowler?.name ?? "N/A")"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "LBW":
-                match.striker?.ballsFaced += 1
-                match.bowler?.ballsBowled += 1
-                match.bowler?.wickets += 1
-                match.currentBattingTeam?.wicketsLost += 1
-                match.deliveriesBowledThatCount += 1
-                var nextBatter: Player?
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "lbw b \(match.bowler?.name ?? "N/A")"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Retired Out":
-                match.currentBattingTeam?.wicketsLost += 1
-                var nextBatter: Player?
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "retired out/hurt"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            case "Retired Hurt":
-                var nextBatter: Player?
-                for player in battingTeam {
-                    if (newBatter == player.id) {
-                        nextBatter = player
-                    }
-                }
-                if (nextBatter?.outDescription == "not out") {
-                    nextBatter?.battingPosition = match.battersSentIn + 1
-                    match.battersSentIn += 1
-                }
-                if (nextBatter?.outDescription == "retired hurt") {
-                    nextBatter?.outDescription = "not out"
-                }
-                match.striker?.outDescription = "retired hurt"
-                match.striker = nextBatter
-                let delivery = Delivery(context: context)
-                delivery.index = match.deliveriesBowled
-                delivery.outcome = "W"
-                let innings = match.inningsTracker
-                let mutableCopy = innings?.mutableCopy() as! NSMutableSet
-                mutableCopy.add(delivery)
-                match.inningsTracker = mutableCopy
-                match.deliveriesBowled += 1
-            default:
-                print("")
-            }
+            _dismissBatter(secondaryOutcome: secondaryOutcome, outString: outString, batterHitBall: offTheBat, wicketWasWide: wicketWasWide, playerThatGotOut: playerThatGotOut, newBatter: newBatter, crossedOver: crossedOver, fielderResponsible: fielderResponsible, match: match, context: context)
         }
         save(context: context)
+        /*
+        End of over mechanics follow.
+        */
         if (match.deliveriesBowledThatCount % 6 == 0 && match.deliveriesBowledThatCount != 0 && !match.bowlerHasNotStartedOver)  {
-            let temp = match.striker
-            match.striker = match.nonStriker
-            match.nonStriker = temp
-            for delivery in match.inningsTracker ?? [] {
+            _switchStrikerAndNonStriker(match: match, context: context)
+            for delivery in match.overTracker ?? [] {
                 context.delete(delivery as! NSManagedObject)
             }
-            let innings = match.inningsTracker
+            let innings = match.overTracker
             let mutableCopy = innings?.mutableCopy() as! NSMutableSet
             mutableCopy.removeAllObjects()
-            match.inningsTracker = mutableCopy
+            match.overTracker = mutableCopy
             match.deliveriesBowled = 0
             var nextBowler: Player?
-            let bowlingTeam = match.currentBowlingTeam?.players?.compactMap { $0 as? Player } ?? []
-            for player in bowlingTeam {
-                if (newBowler == player.id) {
-                    nextBowler = player
+            for player in match.currentBowlingTeam?.players ?? NSSet() {
+                if (newBowler == (player as AnyObject).id) {
+                    nextBowler = player as? Player
                 }
             }
             if (nextBowler?.ballsBowled == 0) {
@@ -1436,435 +158,90 @@ class DataController: ObservableObject {
             }
             match.bowlerHasNotStartedOver = true
             match.bowler = nextBowler
-            save(context: context)
-            print("updateMatchScore: Context saved!")
         } else {
             if (!wicketWasWide && outcome != Outcome.wide && outcome != Outcome.noBall) {
                 match.bowlerHasNotStartedOver = false
             }
-            save(context: context)
-            print("updateMatchScore: Context saved!")
         }
+        save(context: context)
+        print("updateMatchScore: Context saved!")
     }
     
     func undoLastDelivery(match: Match, context: NSManagedObjectContext) {
         if (match.deliveriesBowled != 0) {
-            let deliveries: NSSet? = match.inningsTracker
+            let deliveries: NSSet? = match.overTracker
             let sortedDeliveries = deliveries?.filter { $0 is Delivery }.map { $0 as! Delivery }.sorted(by: { $0.index < $1.index })
             let mostRecentDelivery = sortedDeliveries?.last!
             if (mostRecentDelivery?.outcome != "W") {
-                switch mostRecentDelivery?.outcome {
-                case "0":
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "1":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 1
-                    match.striker?.runs -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "1+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 5
-                    match.striker?.runs -= 5
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 5
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "2":
-                    match.currentBattingTeam?.runs -= 2
-                    match.striker?.runs -= 2
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 2
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "2+4":
-                    match.currentBattingTeam?.runs -= 6
-                    match.striker?.runs -= 6
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 6
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "3":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 3
-                    match.striker?.runs -= 3
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 3
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "3+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 7
-                    match.striker?.runs -= 7
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 7
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "4":
-                    match.currentBattingTeam?.runs -= 4
-                    match.striker?.runs -= 4
-                    match.striker?.fours -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 4
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "4+4":
-                    match.currentBattingTeam?.runs -= 8
-                    match.striker?.runs -= 8
-                    match.striker?.fours -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 8
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "6":
-                    match.currentBattingTeam?.runs -= 6
-                    match.striker?.runs -= 6
-                    match.striker?.sixes -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.runsConceded -= 6
-                    match.bowler?.ballsBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "0wd":
-                    match.currentBattingTeam?.runs -= 1
-                    match.currentBattingTeam?.extras -= 1
-                    match.bowler?.runsConceded -= 1
-                    match.bowler?.extrasBowled -= 1
-                case "0wd+4":
-                    match.currentBattingTeam?.runs -= 5
-                    match.currentBattingTeam?.extras -= 5
-                    match.bowler?.runsConceded -= 5
-                    match.bowler?.extrasBowled -= 5
-                case "1wd":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 2
-                    match.currentBattingTeam?.extras -= 2
-                    match.bowler?.runsConceded -= 2
-                    match.bowler?.extrasBowled -= 2
-                case "1wd+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 6
-                    match.currentBattingTeam?.extras -= 6
-                    match.bowler?.runsConceded -= 6
-                    match.bowler?.extrasBowled -= 6
-                case "2wd":
-                    match.currentBattingTeam?.runs -= 3
-                    match.currentBattingTeam?.extras -= 3
-                    match.bowler?.runsConceded -= 3
-                    match.bowler?.extrasBowled -= 3
-                case "2wd+4":
-                    match.currentBattingTeam?.runs -= 7
-                    match.currentBattingTeam?.extras -= 7
-                    match.bowler?.runsConceded -= 7
-                    match.bowler?.extrasBowled -= 7
-                case "3wd":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 4
-                    match.currentBattingTeam?.extras -= 4
-                    match.bowler?.runsConceded -= 4
-                    match.bowler?.extrasBowled -= 4
-                case "3wd+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 8
-                    match.currentBattingTeam?.extras -= 8
-                    match.bowler?.runsConceded -= 8
-                    match.bowler?.extrasBowled -= 8
-                case "4wd":
-                    match.currentBattingTeam?.runs -= 5
-                    match.currentBattingTeam?.extras -= 5
-                    match.bowler?.runsConceded -= 5
-                    match.bowler?.extrasBowled -= 5
-                case "4wd+4":
-                    match.currentBattingTeam?.runs -= 9
-                    match.currentBattingTeam?.extras -= 9
-                    match.bowler?.runsConceded -= 9
-                    match.bowler?.extrasBowled -= 9
-                case "0nb":
-                    match.currentBattingTeam?.runs -= 1
-                    match.currentBattingTeam?.extras -= 1
-                    match.bowler?.runsConceded -= 1
-                    match.bowler?.extrasBowled -= 1
-                case "0nb+4":
-                    match.currentBattingTeam?.runs -= 5
-                    match.currentBattingTeam?.extras -= 5
-                    match.bowler?.runsConceded -= 5
-                    match.bowler?.extrasBowled -= 5
-                case "1nb":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 2
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 1
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 2
-                        match.bowler?.extrasBowled -= 1
+                let deliveryString = mostRecentDelivery?.outcome ?? ""
+                if (deliveryString.contains("wd") || deliveryString.contains("b")) {
+                    if (deliveryString.contains("nb")) {
+                        let numRuns = (Int64(deliveryString.replacingOccurrences(of: "nb", with: "")) ?? 0)
+                        if (numRuns % 2 == 1) {
+                            _switchStrikerAndNonStriker(match: match, context: context)
+                        }
+                        match.currentBattingTeam?.runs -= (1 + numRuns)
+                        match.bowler?.runsConceded -= (1 + numRuns)
+                        match.striker?.ballsFaced -= 1
+                        if (mostRecentDelivery?.additionalInfo == "*") {
+                            match.striker?.runs -= numRuns
+                            match.currentBattingTeam?.extras -= 1
+                            match.bowler?.extrasBowled -= 1
+                            if (numRuns == 4) {
+                                match.striker?.fours -= 1
+                            } else if (numRuns == 6) {
+                                match.striker?.sixes -= 1
+                            }
+                        } else {
+                            match.currentBattingTeam?.extras -= (1 + numRuns)
+                            match.bowler?.extrasBowled -= (1 + numRuns)
+                        }
+                    } else if (deliveryString.contains("b")) {
+                        var numRuns: Int64 = 0
+                        if (deliveryString.contains("lb")) {
+                            numRuns = (Int64(deliveryString.replacingOccurrences(of: "lb", with: "")) ?? 0)
+                        } else {
+                            numRuns = (Int64(deliveryString.replacingOccurrences(of: "b", with: "")) ?? 0)
+                        }
+                        if (numRuns % 2 == 1) {
+                            _switchStrikerAndNonStriker(match: match, context: context)
+                        }
+                        match.currentBattingTeam?.runs -= numRuns
+                        match.currentBattingTeam?.extras -= numRuns
+                        match.bowler?.extrasBowled -= numRuns
+                        match.bowler?.ballsBowled -= 1
+                        match.striker?.ballsFaced -= 1
+                        match.deliveriesBowledThatCount -= 1
                     } else {
-                        match.currentBattingTeam?.extras -= 2
-                        match.bowler?.runsConceded -= 2
-                        match.bowler?.extrasBowled -= 2
+                        let numRuns = (Int64(deliveryString.replacingOccurrences(of: "wd", with: "")) ?? 0)
+                        if (numRuns % 2 == 1) {
+                            _switchStrikerAndNonStriker(match: match, context: context)
+                        }
+                        match.currentBattingTeam?.runs -= (1 + numRuns)
+                        match.currentBattingTeam?.extras -= (1 + numRuns)
+                        match.bowler?.runsConceded -= (1 + numRuns)
+                        match.bowler?.extrasBowled -= (1 + numRuns)
                     }
-                case "1nb+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 6
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 5
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 6
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 6
-                        match.bowler?.runsConceded -= 6
-                        match.bowler?.extrasBowled -= 6
+                } else {
+                    if ((Int64(deliveryString) ?? 0) % 2 == 1) {
+                        _switchStrikerAndNonStriker(match: match, context: context)
                     }
-                case "2nb":
-                    match.currentBattingTeam?.runs -= 3
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 2
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 3
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 3
-                        match.bowler?.runsConceded -= 3
-                        match.bowler?.extrasBowled -= 3
+                    match.currentBattingTeam?.runs -= Int64(deliveryString) ?? 0
+                    match.striker?.runs -= Int64(deliveryString) ?? 0
+                    match.striker?.ballsFaced -= 1
+                    match.bowler?.runsConceded -= Int64(deliveryString) ?? 0
+                    match.bowler?.ballsBowled -= 1
+                    match.deliveriesBowledThatCount -= 1
+                    if ((Int64(deliveryString) ?? 0) == 4) {
+                        match.striker?.fours -= 1
+                    } else if ((Int64(deliveryString) ?? 0) == 6) {
+                        match.striker?.sixes -= 1
                     }
-                case "2nb+4":
-                    match.currentBattingTeam?.runs -= 7
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 6
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 7
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 7
-                        match.bowler?.runsConceded -= 7
-                        match.bowler?.extrasBowled -= 7
-                    }
-                case "3nb": 
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 4
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 3
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 4
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 4
-                        match.bowler?.runsConceded -= 4
-                        match.bowler?.extrasBowled -= 4
-                    }
-                case "3nb+4": 
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 8
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 7
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 8
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 8
-                        match.bowler?.runsConceded -= 8
-                        match.bowler?.extrasBowled -= 8
-                    }
-                case "4nb": 
-                    match.currentBattingTeam?.runs -= 5
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 4
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 5
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 5
-                        match.bowler?.runsConceded -= 5
-                        match.bowler?.extrasBowled -= 5
-                    }
-                case "4nb+4": 
-                    match.currentBattingTeam?.runs -= 9
-                    if (mostRecentDelivery?.additionalInfo == "*") {
-                        match.striker?.runs -= 8
-                        match.currentBattingTeam?.extras -= 1
-                        match.bowler?.runsConceded -= 9
-                        match.bowler?.extrasBowled -= 1
-                    } else {
-                        match.currentBattingTeam?.extras -= 9
-                        match.bowler?.runsConceded -= 9
-                        match.bowler?.extrasBowled -= 9
-                    }
-                case "6nb":
-                    match.currentBattingTeam?.runs -= 7
-                    match.striker?.runs -= 6
-                    match.currentBattingTeam?.extras -= 1
-                    match.bowler?.runsConceded -= 7
-                    match.bowler?.extrasBowled -= 1
-                case "1b":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 1
-                    match.currentBattingTeam?.extras -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "1b+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 5
-                    match.currentBattingTeam?.extras -= 5
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 5
-                    match.deliveriesBowledThatCount -= 1
-                case "2b": 
-                    match.currentBattingTeam?.runs -= 2
-                    match.currentBattingTeam?.extras -= 2
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 2
-                    match.deliveriesBowledThatCount -= 1
-                case "2b+4":
-                    match.currentBattingTeam?.runs -= 6
-                    match.currentBattingTeam?.extras -= 6
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 6
-                    match.deliveriesBowledThatCount -= 1
-                case "3b": 
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 3
-                    match.currentBattingTeam?.extras -= 3
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 3
-                    match.deliveriesBowledThatCount -= 1
-                case "3b+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 7
-                    match.currentBattingTeam?.extras -= 7
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 7
-                    match.deliveriesBowledThatCount -= 1
-                case "4b":  
-                    match.currentBattingTeam?.runs -= 4
-                    match.currentBattingTeam?.extras -= 4
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 4
-                    match.deliveriesBowledThatCount -= 1
-                case "4b+4": 
-                    match.currentBattingTeam?.runs -= 8
-                    match.currentBattingTeam?.extras -= 8
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 8
-                    match.deliveriesBowledThatCount -= 1
-                case "1lb":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 1
-                    match.currentBattingTeam?.extras -= 1
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 1
-                    match.deliveriesBowledThatCount -= 1
-                case "1lb+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 5
-                    match.currentBattingTeam?.extras -= 5
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 5
-                    match.deliveriesBowledThatCount -= 1
-                case "2lb":
-                    match.currentBattingTeam?.runs -= 2
-                    match.currentBattingTeam?.extras -= 2
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 2
-                    match.deliveriesBowledThatCount -= 1
-                case "2lb+4":
-                    match.currentBattingTeam?.runs -= 6
-                    match.currentBattingTeam?.extras -= 6
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 6
-                    match.deliveriesBowledThatCount -= 1
-                case "3lb":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 3
-                    match.currentBattingTeam?.extras -= 3
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 3
-                    match.deliveriesBowledThatCount -= 1
-                case "3lb+4":
-                    let temp = match.striker
-                    match.striker = match.nonStriker
-                    match.nonStriker = temp
-                    match.currentBattingTeam?.runs -= 7
-                    match.currentBattingTeam?.extras -= 7
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 7
-                    match.deliveriesBowledThatCount -= 1
-                case "4lb":
-                    match.currentBattingTeam?.runs -= 4
-                    match.currentBattingTeam?.extras -= 4
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 4
-                    match.deliveriesBowledThatCount -= 1
-                case "4lb+4":
-                    match.currentBattingTeam?.runs -= 8
-                    match.currentBattingTeam?.extras -= 8
-                    match.striker?.ballsFaced -= 1
-                    match.bowler?.ballsBowled -= 1
-                    match.bowler?.extrasBowled -= 8
-                    match.deliveriesBowledThatCount -= 1
-                default:
-                    print("")
                 }
                 let mutableCopy = deliveries as! NSMutableSet
                 mutableCopy.remove(mostRecentDelivery!)
                 context.delete(mostRecentDelivery!)
-                match.inningsTracker = mutableCopy
+                match.overTracker = mutableCopy
                 match.deliveriesBowled -= 1
             }
             save(context: context)
@@ -1903,25 +280,25 @@ class DataController: ObservableObject {
         match.deliveriesBowled = 0
         match.bowlerHasNotStartedOver = true
         match.firstInningsFinished = true
-        for delivery in match.inningsTracker ?? [] {
+        for delivery in match.overTracker ?? [] {
             context.delete(delivery as! NSManagedObject)
         }
-        let innings = match.inningsTracker
+        let innings = match.overTracker
         let mutableCopy = innings?.mutableCopy() as! NSMutableSet
         mutableCopy.removeAllObjects()
-        match.inningsTracker = mutableCopy
+        match.overTracker = mutableCopy
         save(context: context)
         print("switchInnings: Context saved!")
     }
     
     func completeMatch(match: Match, context: NSManagedObjectContext) {
-        for delivery in match.inningsTracker ?? [] {
+        for delivery in match.overTracker ?? [] {
             context.delete(delivery as! NSManagedObject)
         }
-        let innings = match.inningsTracker
+        let innings = match.overTracker
         let mutableCopy = innings?.mutableCopy() as! NSMutableSet
         mutableCopy.removeAllObjects()
-        match.inningsTracker = mutableCopy
+        match.overTracker = mutableCopy
         if ((match.teamBattingFirst?.runs ?? -1) > (match.teamBowlingFirst?.runs ?? -1)) {
             if ((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1) == 1) {
                 match.result = "\(match.teamBattingFirst?.name ?? "N/A") won by \((match.teamBattingFirst?.runs ?? -1) - (match.teamBowlingFirst?.runs ?? -1)) run!"
@@ -1940,6 +317,393 @@ class DataController: ObservableObject {
         match.completed = true
         save(context: context)
         print("completeMatch: Context saved!")
+    }
+    
+    private func _initTeam(team: Team, teamName: String, playerNames: [String], context: NSManagedObjectContext) {
+        team.name = teamName
+        team.runs = 0
+        team.extras = 0
+        team.wicketsLost = 0
+        var playerArray = [Player]()
+        for playerName in playerNames {
+            if (playerName != "") {
+                let player = Player(context: context)
+                player.id = UUID()
+                player.name = playerName
+                player.runs = 0
+                player.wickets = 0
+                player.runsConceded = 0
+                player.ballsFaced = 0
+                player.ballsBowled = 0
+                player.fours = 0
+                player.sixes = 0
+                player.extrasBowled = 0
+                player.battingPosition = 0
+                player.bowlingPosition = 0
+                player.outDescription = "not out"
+                playerArray.append(player)
+            }
+        }
+        team.players = NSSet(array: playerArray)
+        save(context: context)
+    }
+    
+    private func _incrementMatchScoreWithNonExtras(runsToAdd: Int, match: Match, context: NSManagedObjectContext) {
+        match.currentBattingTeam?.runs += Int64(runsToAdd)
+        match.striker?.runs += Int64(runsToAdd)
+        match.bowler?.runsConceded += Int64(runsToAdd)
+        let delivery = Delivery(context: context)
+        delivery.index = match.deliveriesBowled
+        delivery.outcome = String(runsToAdd)
+        let innings = match.overTracker
+        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+        mutableCopy.add(delivery)
+        match.overTracker = mutableCopy
+        match.striker?.ballsFaced += 1
+        match.bowler?.ballsBowled += 1
+        match.deliveriesBowled += 1
+        match.deliveriesBowledThatCount += 1
+        if (runsToAdd == 4) {
+            match.striker?.fours += 1
+        } else if (runsToAdd == 6) {
+            match.striker?.sixes += 1
+        }
+        save(context: context)
+        if (runsToAdd % 2 == 1) {
+           _switchStrikerAndNonStriker(match: match, context: context)
+        }
+    }
+    
+    private func _incrementMatchScoreWithWide(runsToAdd: Int, match: Match, context: NSManagedObjectContext) {
+        match.currentBattingTeam?.runs += Int64(1 + runsToAdd)
+        match.currentBattingTeam?.extras += Int64(1 + runsToAdd)
+        match.bowler?.runsConceded += Int64(1 + runsToAdd)
+        match.bowler?.extrasBowled += Int64(1 + runsToAdd)
+        let delivery = Delivery(context: context)
+        delivery.index = match.deliveriesBowled
+        delivery.outcome = String(runsToAdd) + "wd"
+        let innings = match.overTracker
+        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+        mutableCopy.add(delivery)
+        match.overTracker = mutableCopy
+        match.deliveriesBowled += 1
+        save(context: context)
+        if (runsToAdd % 2 == 1) {
+           _switchStrikerAndNonStriker(match: match, context: context)
+        }
+    }
+    
+    private func _incrementMatchScoreWithNoBall(runsToAdd: Int, batterHitBall: Bool, match: Match, context: NSManagedObjectContext) {
+        match.currentBattingTeam?.runs += Int64(1 + runsToAdd)
+        match.striker?.ballsFaced += 1
+        match.bowler?.runsConceded += Int64(1 + runsToAdd)
+        let delivery = Delivery(context: context)
+        delivery.index = match.deliveriesBowled
+        delivery.outcome = String(runsToAdd) + "nb"
+        let innings = match.overTracker
+        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+        mutableCopy.add(delivery)
+        match.overTracker = mutableCopy
+        match.deliveriesBowled += 1
+        if (batterHitBall) {
+            delivery.additionalInfo = "*"
+            match.currentBattingTeam?.extras += 1
+            match.striker?.runs += Int64(runsToAdd)
+            match.bowler?.extrasBowled += 1
+            if (runsToAdd == 4) {
+                match.striker?.fours += 1
+            } else if (runsToAdd == 6) {
+                match.striker?.sixes += 1
+            }
+        } else {
+            match.currentBattingTeam?.extras += Int64(1 + runsToAdd)
+            match.bowler?.extrasBowled += Int64(1 + runsToAdd)
+        }
+        save(context: context)
+        if (runsToAdd % 2 == 1) {
+           _switchStrikerAndNonStriker(match: match, context: context)
+        }
+    }
+    
+    private func _incrementMatchScoreWithBye(runsToAdd: Int, isLegBye: Bool, match: Match, context: NSManagedObjectContext) {
+        match.currentBattingTeam?.runs += Int64(runsToAdd)
+        match.currentBattingTeam?.extras += Int64(runsToAdd)
+        match.bowler?.extrasBowled += Int64(runsToAdd)
+        let delivery = Delivery(context: context)
+        delivery.index = match.deliveriesBowled
+        if (isLegBye) {
+            delivery.outcome = String(runsToAdd) + "lb"
+        } else {
+            delivery.outcome = String(runsToAdd) + "b"
+        }
+        let innings = match.overTracker
+        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+        mutableCopy.add(delivery)
+        match.overTracker = mutableCopy
+        match.striker?.ballsFaced += 1
+        match.bowler?.ballsBowled += 1
+        match.deliveriesBowled += 1
+        match.deliveriesBowledThatCount += 1
+        save(context: context)
+        if (runsToAdd % 2 == 1) {
+           _switchStrikerAndNonStriker(match: match, context: context)
+        }
+    }
+    
+    private func _dismissBatter(secondaryOutcome: Int?, outString: String?, batterHitBall: Bool, wicketWasWide: Bool = false, playerThatGotOut: UUID?, newBatter: UUID?, crossedOver: Bool = false, fielderResponsible: UUID?, match: Match, context: NSManagedObjectContext) {
+        var nextBatter: Player?
+        var fielderName: String = ""
+        switch outString {
+        case "Run Out":
+            if (wicketWasWide) {
+                if (batterHitBall) {
+                    match.currentBattingTeam?.runs += 1 + Int64(secondaryOutcome ?? 0)
+                    match.striker?.runs += Int64(secondaryOutcome ?? 0)
+                    match.currentBattingTeam?.extras += 1
+                    match.bowler?.runsConceded += 1 + Int64(secondaryOutcome ?? 0)
+                    match.bowler?.extrasBowled += 1
+                } else {
+                    match.currentBattingTeam?.runs += 1 + Int64(secondaryOutcome ?? 0)
+                    match.currentBattingTeam?.extras += 1 + Int64(secondaryOutcome ?? 0)
+                    match.bowler?.runsConceded += 1 + Int64(secondaryOutcome ?? 0)
+                    match.bowler?.extrasBowled += 1 + Int64(secondaryOutcome ?? 0)
+                }
+                save(context: context)
+                if (crossedOver) {
+                    if ((secondaryOutcome ?? 0) % 2 == 0) {
+                        _switchStrikerAndNonStriker(match: match, context: context)
+                    }
+                } else {
+                    if ((secondaryOutcome ?? 0) % 2 != 0) {
+                        _switchStrikerAndNonStriker(match: match, context: context)
+                    }
+                }
+            } else {
+                if (batterHitBall) {
+                    match.striker?.runs += Int64(secondaryOutcome ?? 0)
+                    match.bowler?.runsConceded += Int64(secondaryOutcome ?? 0)
+                } else {
+                    match.currentBattingTeam?.extras += Int64(secondaryOutcome ?? 0)
+                    match.bowler?.extrasBowled += Int64(secondaryOutcome ?? 0)
+                }
+                match.currentBattingTeam?.runs += Int64(secondaryOutcome ?? 0)
+                match.striker?.ballsFaced += 1
+                match.bowler?.ballsBowled += 1
+                match.deliveriesBowledThatCount += 1
+                save(context: context)
+                if (crossedOver) {
+                    if ((secondaryOutcome ?? 0) % 2 == 0) {
+                        _switchStrikerAndNonStriker(match: match, context: context)
+                    }
+                } else {
+                    if ((secondaryOutcome ?? 0) % 2 != 0) {
+                        _switchStrikerAndNonStriker(match: match, context: context)
+                    }
+                }
+            }
+            match.currentBattingTeam?.wicketsLost += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            for player in match.currentBowlingTeam?.players ?? NSSet() {
+                if (fielderResponsible == (player as AnyObject).id) {
+                    fielderName = (player as AnyObject).name ?? ""
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            if (playerThatGotOut == match.striker?.id) {
+                match.striker?.outDescription = "run out (\(fielderName))"
+                match.striker = nextBatter
+            } else {
+                match.nonStriker?.outDescription = "run out (\(fielderName))"
+                match.nonStriker = nextBatter
+            }
+        case "Hit Wicket":
+            if (wicketWasWide) {
+                match.currentBattingTeam?.runs += 1
+                match.currentBattingTeam?.extras += 1
+                match.bowler?.extrasBowled += 1
+                match.bowler?.runsConceded += 1
+            } else {
+                match.striker?.ballsFaced += 1
+                match.bowler?.ballsBowled += 1
+                match.deliveriesBowledThatCount += 1
+            }
+            match.bowler?.wickets += 1
+            match.currentBattingTeam?.wicketsLost += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "hit wicket b \(match.bowler?.name ?? "N/A")"
+            match.striker = nextBatter
+        case "Stumped":
+            if (wicketWasWide) {
+                match.currentBattingTeam?.runs += 1
+                match.currentBattingTeam?.extras += 1
+                match.bowler?.extrasBowled += 1
+                match.bowler?.runsConceded += 1
+            } else {
+                match.striker?.ballsFaced += 1
+                match.bowler?.ballsBowled += 1
+                match.deliveriesBowledThatCount += 1
+            }
+            match.bowler?.wickets += 1
+            match.currentBattingTeam?.wicketsLost += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            for player in match.currentBowlingTeam?.players ?? NSSet() {
+                if (fielderResponsible == (player as AnyObject).id) {
+                    fielderName = (player as AnyObject).name ?? ""
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "st \(fielderName) b \(match.bowler?.name ?? "N/A")"
+            match.striker = nextBatter
+        case "Caught":
+            match.striker?.ballsFaced += 1
+            match.bowler?.ballsBowled += 1
+            match.bowler?.wickets += 1
+            match.currentBattingTeam?.wicketsLost += 1
+            match.deliveriesBowledThatCount += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            for player in match.currentBowlingTeam?.players ?? NSSet() {
+                if (fielderResponsible == (player as AnyObject).id) {
+                    fielderName = (player as AnyObject).name ?? ""
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "c \(fielderName) b \(match.bowler?.name ?? "N/A")"
+            match.striker = nextBatter
+            save(context: context)
+            if (crossedOver) {
+                _switchStrikerAndNonStriker(match: match, context: context)
+            }
+        case "Bowled":
+            match.striker?.ballsFaced += 1
+            match.bowler?.ballsBowled += 1
+            match.bowler?.wickets += 1
+            match.currentBattingTeam?.wicketsLost += 1
+            match.deliveriesBowledThatCount += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "b \(match.bowler?.name ?? "N/A")"
+            match.striker = nextBatter
+        case "LBW":
+            match.striker?.ballsFaced += 1
+            match.bowler?.ballsBowled += 1
+            match.bowler?.wickets += 1
+            match.currentBattingTeam?.wicketsLost += 1
+            match.deliveriesBowledThatCount += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "lbw b \(match.bowler?.name ?? "N/A")"
+            match.striker = nextBatter
+        case "Retired Out":
+            match.currentBattingTeam?.wicketsLost += 1
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "retired out/hurt"
+            match.striker = nextBatter
+        case "Retired Hurt":
+            for player in match.currentBattingTeam?.players ?? NSSet() {
+                if (newBatter == (player as AnyObject).id) {
+                    nextBatter = player as? Player
+                }
+            }
+            if (nextBatter?.outDescription == "not out") {
+                nextBatter?.battingPosition = match.battersSentIn + 1
+                match.battersSentIn += 1
+            }
+            if (nextBatter?.outDescription == "retired hurt") {
+                nextBatter?.outDescription = "not out"
+            }
+            match.striker?.outDescription = "retired hurt"
+            match.striker = nextBatter
+        default:
+            print("")
+        }
+        let delivery = Delivery(context: context)
+        delivery.index = match.deliveriesBowled
+        delivery.outcome = "W"
+        let innings = match.overTracker
+        let mutableCopy = innings?.mutableCopy() as! NSMutableSet
+        mutableCopy.add(delivery)
+        match.overTracker = mutableCopy
+        match.deliveriesBowled += 1
+        save(context: context)
+    }
+    
+    private func _switchStrikerAndNonStriker(match: Match, context: NSManagedObjectContext) {
+        let temp = match.striker
+        match.striker = match.nonStriker
+        match.nonStriker = temp
+        save(context: context)
     }
     
 }
