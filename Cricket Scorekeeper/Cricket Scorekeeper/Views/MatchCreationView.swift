@@ -101,7 +101,7 @@ struct MatchCreationView: View {
                     .padding()
                     HStack {
                         Button("Create Match") {
-                            if (teamOneName.isEmpty || teamTwoName.isEmpty || !allPlayersEntered() || teamOneName == teamTwoName) {
+                            if (teamOneName.isEmpty || teamTwoName.isEmpty || !allPlayersEntered() || teamOneName == teamTwoName || hasDuplicates(array: teamOnePlayerNames + teamTwoPlayerNames)) {
                                 allFieldsNotFilled = true
                             } else {
                                 DataController.shared.createMatch(overs: Int64(overs), teamSize: Int64(teamSize), teamOneName: teamOneName, teamTwoName: teamTwoName, teamOnePlayerNames: teamOnePlayerNames, teamTwoPlayerNames: teamTwoPlayerNames, context: managedObjectContext)
@@ -116,6 +116,8 @@ struct MatchCreationView: View {
                         } message: {
                             if (teamOneName == teamTwoName) {
                                 Text("Both teams cannot have the same name.")
+                            } else if (hasDuplicates(array: teamOnePlayerNames + teamTwoPlayerNames)) {
+                                Text("Please ensure that all players have different names.")
                             } else {
                                 Text("Please fill all of the fields.")
                             }
@@ -157,6 +159,18 @@ struct MatchCreationView: View {
             }
         }
         return true
+    }
+    
+    private func hasDuplicates(array: [String]) -> Bool {
+        var elements: [String] = []
+        for i in 0...array.count - 1 {
+            if (elements.contains(array[i])) {
+                return true
+            } else if (!array[i].isEmpty){
+                elements.append(array[i])
+            }
+        }
+        return false
     }
     
 }
